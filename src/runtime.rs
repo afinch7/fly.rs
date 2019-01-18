@@ -81,7 +81,10 @@ use crate::settings::{
   AcmeStoreConfig, CacheStore, CacheStoreNotifier, DataStore, FsStore, Settings,
 };
 
-use crate::module_resolver::{ LoadedModule, RefererInfo, StandardModuleResolverManager, ModuleResolverManager, ModuleResolver, LocalDiskModuleResolver };
+use crate::module_resolver::{
+  LoadedModule, LocalDiskModuleResolver, ModuleResolver, ModuleResolverManager, RefererInfo,
+  StandardModuleResolverManager,
+};
 
 use super::NEXT_FUTURE_ID;
 use std::net::SocketAddr;
@@ -210,13 +213,21 @@ fn init_event_loop(
 }
 
 impl Runtime {
-  pub fn new(name: Option<String>, version: Option<String>, settings: &Settings, module_resolvers: Option<Vec<Box<ModuleResolver>>>) -> Box<Runtime> {
+  pub fn new(
+    name: Option<String>,
+    version: Option<String>,
+    settings: &Settings,
+    module_resolvers: Option<Vec<Box<ModuleResolver>>>,
+  ) -> Box<Runtime> {
     JSINIT.call_once(|| unsafe { js_init() });
 
     let rt_name = name.unwrap_or("v8".to_string());
     let rt_version = version.unwrap_or("0".to_string());
     let (rthandle, txready, rxquit) = init_event_loop(format!("{}-{}", rt_name, rt_version));
-    let rt_module_resolvers = module_resolvers.unwrap_or(vec![Box::new(LocalDiskModuleResolver::new(None)) as Box<ModuleResolver>]);
+    let rt_module_resolvers =
+      module_resolvers.unwrap_or(vec![
+        Box::new(LocalDiskModuleResolver::new(None)) as Box<ModuleResolver>
+      ]);
 
     let mut rt = Box::new(Runtime {
       ptr: JsRuntime(ptr::null() as *const js_runtime),
@@ -272,7 +283,10 @@ impl Runtime {
         None => None,
       },
       last_event_at: ATOMIC_USIZE_INIT,
-      module_resolver_manager: Box::new(StandardModuleResolverManager::new(rt_module_resolvers, None)),
+      module_resolver_manager: Box::new(StandardModuleResolverManager::new(
+        rt_module_resolvers,
+        None,
+      )),
       metadata_cache: RwLock::new(HashMap::new()),
     });
 
@@ -641,7 +655,11 @@ pub unsafe extern "C" fn print_from_js(raw: *const js_runtime, lvl: i8, msg: *co
   log!(lvl, "console/{}: {}", &rt.name, &msg);
 }
 
-pub unsafe extern "C" fn resolve_callback(raw: *const js_runtime, specifier: *const libc::c_char, referer_identity_hash: i32) -> js_compiled_module {
+pub unsafe extern "C" fn resolve_callback(
+  raw: *const js_runtime,
+  specifier: *const libc::c_char,
+  referer_identity_hash: i32,
+) -> js_compiled_module {
   let rt = Runtime::from_raw(raw);
   let specifier_str = CStr::from_ptr(specifier).to_string_lossy().into_owned();
 
@@ -650,20 +668,23 @@ pub unsafe extern "C" fn resolve_callback(raw: *const js_runtime, specifier: *co
     None => {
       error!("Failed to find module hash in metadata cache! Exiting.");
       std::process::exit(1);
-    },
+    }
   };
 
-  let loaded_module = match rt.module_resolver_manager.resolve_module(specifier_str, Some(RefererInfo {
-    origin_url: referer_loaded_module.origin_url,
-    is_wasm: Some(referer_loaded_module.loaded_source.is_wasm),
-    source_code: Some(referer_loaded_module.loaded_source.source),
-    indentifier_hash: Some(referer_identity_hash),
-  })) {
+  let loaded_module = match rt.module_resolver_manager.resolve_module(
+    specifier_str,
+    Some(RefererInfo {
+      origin_url: referer_loaded_module.origin_url,
+      is_wasm: Some(referer_loaded_module.loaded_source.is_wasm),
+      source_code: Some(referer_loaded_module.loaded_source.source),
+      indentifier_hash: Some(referer_identity_hash),
+    }),
+  ) {
     Ok(v) => v,
     Err(e) => {
-      error!("Failed to resolve and load module! Exiting.");
+      error!("Failed to resolve and load module! Exiting. {}", e);
       std::process::exit(1);
-    },
+    }
   };
 
   let module_data = js_module_data {
@@ -671,9 +692,11 @@ pub unsafe extern "C" fn resolve_callback(raw: *const js_runtime, specifier: *co
     source_map_url: CString::new("").unwrap().as_ptr(),
     is_wasm: loaded_module.loaded_source.is_wasm,
     source_code: fly_simple_buf {
-      ptr: CString::new(loaded_module.loaded_source.source.as_str()).unwrap().as_ptr(),
+      ptr: CString::new(loaded_module.loaded_source.source.as_str())
+        .unwrap()
+        .as_ptr(),
       len: loaded_module.loaded_source.source.len() as i32,
-    }
+    },
   };
 
   let compile_result = js_compile_module(raw, module_data);
@@ -1216,7 +1239,10 @@ fn op_load_module(_ptr: JsRuntime, base: &msg::Base, _raw: fly_buf) -> Box<Op> {
     None => None,
   };
 
-  let module = match rt.module_resolver_manager.resolve_module(specifier_url, referer_info) {
+  let module = match rt
+    .module_resolver_manager
+    .resolve_module(specifier_url, referer_info)
+  {
     Ok(m) => m,
     Err(e) => return odd_future(e.into()),
   };

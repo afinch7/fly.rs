@@ -1,12 +1,12 @@
 use crate::errors::*;
 
-use std::path::{ PathBuf };
+use std::path::PathBuf;
 
-use std::marker::{ Send };
+use std::marker::Send;
 
-use std::clone::{ Clone };
+use std::clone::Clone;
 
-use std::collections::{ HashMap };
+use std::collections::HashMap;
 
 use serde_json;
 
@@ -48,7 +48,7 @@ pub trait SourceLoader: Send {
  */
 pub trait ModuleResolver: Send + Sync {
     fn resolve_module(
-        &self, 
+        &self,
         module_specifier: &str,
         referer_info: Option<RefererInfo>,
     ) -> FlyResult<ModuleSourceData>;
@@ -59,17 +59,18 @@ pub trait ModuleResolver: Send + Sync {
  * This trait is a used as the "front door" of the dynamic module resolution system.
  */
 pub trait ModuleResolverManager: Send + Sync {
-    fn resolve_module(&self, specifier: String, referer_info: Option<RefererInfo>) -> FlyResult<LoadedModule>;
+    fn resolve_module(
+        &self,
+        specifier: String,
+        referer_info: Option<RefererInfo>,
+    ) -> FlyResult<LoadedModule>;
 }
 
 /**
  * Parse url or join it to the working url if it's relative. working_url_str << MUST BE AN ABSOLUTE PATH.
  */
 fn parse_url(url_str: &str, working_url_str: &str) -> Result<url::Url, url::ParseError> {
-    info!(
-      "parse_url {} from {}",
-      &url_str, &working_url_str
-    );
+    info!("parse_url {} from {}", &url_str, &working_url_str);
     // TODO: Add some additional logic to this thing to account for file paths without the "file://" protocol denotation.
     let mut url_parsed = match url::Url::parse(url_str) {
         Ok(v) => v,
@@ -83,14 +84,15 @@ fn parse_url(url_str: &str, working_url_str: &str) -> Result<url::Url, url::Pars
             } else {
                 return Err(e);
             }
-        },
+        }
     };
-    
+
     // The default scheme/protocol should be "file://"
     if url_parsed.scheme() == "" {
-        url_parsed.set_scheme("file"); 
+        // ignore result since "file" scheme won't error
+        let _ = url_parsed.set_scheme("file");
     }
-    
+
     return Ok(url_parsed);
 }
 
@@ -101,7 +103,10 @@ pub struct LocalDiskRawLoader {
 
 impl LocalDiskRawLoader {
     pub fn new(source_file_path: PathBuf, source_map_path: Option<PathBuf>) -> Self {
-        Self { source_file_path, source_map_path }
+        Self {
+            source_file_path,
+            source_map_path,
+        }
     }
 }
 
@@ -110,15 +115,17 @@ impl SourceLoader for LocalDiskRawLoader {
         // Try to load file from path for this loader and return if successful
         let source = std::fs::read_to_string(&self.source_file_path.to_str().unwrap().to_string())?;
         let source_map = match &self.source_map_path {
-            Some(v) => {
-                match std::fs::read_to_string(&v.to_str().unwrap().to_string()) {
-                    Ok(v) => Some(v),
-                    Err(_err) => None,
-                }
+            Some(v) => match std::fs::read_to_string(&v.to_str().unwrap().to_string()) {
+                Ok(v) => Some(v),
+                Err(_err) => None,
             },
             None => None,
         };
-        Ok(LoadedSourceCode{ is_wasm: false, source_map, source })
+        Ok(LoadedSourceCode {
+            is_wasm: false,
+            source_map,
+            source,
+        })
     }
 }
 
@@ -129,10 +136,17 @@ pub struct LocalDiskModuleResolver {
 impl LocalDiskModuleResolver {
     pub fn new(default_working_url: Option<String>) -> Self {
         let default_working_url = match default_working_url {
-            None => url::Url::from_directory_path(std::env::current_dir().expect("invalid current directory")).unwrap().as_str().to_string(),
+            None => url::Url::from_directory_path(
+                std::env::current_dir().expect("invalid current directory"),
+            )
+            .unwrap()
+            .as_str()
+            .to_string(),
             Some(default_working_url) => default_working_url,
         };
-        Self { default_working_url }
+        Self {
+            default_working_url,
+        }
     }
 }
 
@@ -157,7 +171,10 @@ impl ModuleResolver for LocalDiskModuleResolver {
 
         if module_file_path.is_file() {
             return Ok(ModuleSourceData {
-                origin_url: url::Url::from_file_path(module_file_path.clone()).unwrap().as_str().to_string(),
+                origin_url: url::Url::from_file_path(module_file_path.clone())
+                    .unwrap()
+                    .as_str()
+                    .to_string(),
                 source_loader: Box::new(LocalDiskRawLoader::new(module_file_path, None)),
             });
         }
@@ -165,7 +182,10 @@ impl ModuleResolver for LocalDiskModuleResolver {
         info!("trying module {} ({})", module_file_path.display(), did_set);
         if module_file_path.is_file() {
             return Ok(ModuleSourceData {
-                origin_url: url::Url::from_file_path(module_file_path.clone()).unwrap().as_str().to_string(),
+                origin_url: url::Url::from_file_path(module_file_path.clone())
+                    .unwrap()
+                    .as_str()
+                    .to_string(),
                 source_loader: Box::new(LocalDiskRawLoader::new(module_file_path, None)),
             });
         }
@@ -173,7 +193,10 @@ impl ModuleResolver for LocalDiskModuleResolver {
         info!("trying module {} ({})", module_file_path.display(), did_set);
         if module_file_path.is_file() {
             return Ok(ModuleSourceData {
-                origin_url: url::Url::from_file_path(module_file_path.clone()).unwrap().as_str().to_string(),
+                origin_url: url::Url::from_file_path(module_file_path.clone())
+                    .unwrap()
+                    .as_str()
+                    .to_string(),
                 source_loader: Box::new(LocalDiskRawLoader::new(module_file_path, None)),
             });
         }
@@ -191,13 +214,15 @@ impl ModuleResolver for LocalDiskModuleResolver {
 }
 
 pub struct FunctionModuleResolver {
-  resolve_fn: Box<Fn(&str, Option<RefererInfo>) -> FlyResult<ModuleSourceData> + Send + Sync>,
+    resolve_fn: Box<Fn(&str, Option<RefererInfo>) -> FlyResult<ModuleSourceData> + Send + Sync>,
 }
 
 impl FunctionModuleResolver {
-  pub fn new(resolve_fn: Box<Fn(&str, Option<RefererInfo>) -> FlyResult<ModuleSourceData> + Send + Sync>) -> Self {
-    Self { resolve_fn }
-  }
+    pub fn new(
+        resolve_fn: Box<Fn(&str, Option<RefererInfo>) -> FlyResult<ModuleSourceData> + Send + Sync>,
+    ) -> Self {
+        Self { resolve_fn }
+    }
 }
 
 impl ModuleResolver for FunctionModuleResolver {
@@ -227,13 +252,18 @@ pub struct JsonSecretsLoader {
 
 impl JsonSecretsLoader {
     pub fn new(json_value: &serde_json::Value) -> Self {
-        Self { json_value: (*json_value).clone() }
+        Self {
+            json_value: (*json_value).clone(),
+        }
     }
 }
 
 impl SourceLoader for JsonSecretsLoader {
     fn load_source(&self) -> FlyResult<LoadedSourceCode> {
-        let source_code = format!("export default JSON.parse(`{}`);", self.json_value.to_string().replace("`", ""));
+        let source_code = format!(
+            "export default JSON.parse(`{}`);",
+            self.json_value.to_string().replace("`", "")
+        );
 
         info!("Loaded json secrets {}", source_code);
 
@@ -300,33 +330,40 @@ impl StandardModuleResolverManager {
         let mut protocol_resolver_map: HashMap<String, Vec<Box<ModuleResolver>>> = HashMap::new();
         for resolver in resolvers {
             match protocol_resolver_map.get_mut(&resolver.get_protocol()) {
-                Some(v) => {
-                    v.push(resolver)
-                },
+                Some(v) => v.push(resolver),
                 None => {
                     protocol_resolver_map.insert(resolver.get_protocol(), vec![resolver]);
                 }
             }
         }
         let default_working_url = match default_working_url {
-            None => url::Url::from_directory_path(std::env::current_dir().expect("invalid current directory")).unwrap().as_str().to_string(),
+            None => url::Url::from_directory_path(
+                std::env::current_dir().expect("invalid current directory"),
+            )
+            .unwrap()
+            .as_str()
+            .to_string(),
             Some(default_working_url) => default_working_url,
         };
-        Self { protocol_resolver_map, default_working_url }
+        Self {
+            protocol_resolver_map,
+            default_working_url,
+        }
     }
 }
 
 impl ModuleResolverManager for StandardModuleResolverManager {
-    fn resolve_module(&self, specifier: String, referer_info: Option<RefererInfo>) -> FlyResult<LoadedModule> {
+    fn resolve_module(
+        &self,
+        specifier: String,
+        referer_info: Option<RefererInfo>,
+    ) -> FlyResult<LoadedModule> {
         let referer_origin_url = match referer_info.clone() {
             Some(v) => v.origin_url,
             None => self.default_working_url.clone(),
         };
         // Parse the specifier with the referer origin_url as the working path/url.
-        info!(
-            "resolve_module {} from {}",
-            &specifier, &referer_origin_url
-        );
+        info!("resolve_module {} from {}", &specifier, &referer_origin_url);
 
         let specifier_url = parse_url(specifier.as_str(), referer_origin_url.as_str())?;
 
@@ -336,9 +373,11 @@ impl ModuleResolverManager for StandardModuleResolverManager {
             None => {
                 return Err(FlyError::from(format!(
                     "Could not resolve {} from {}: no resolvers for protocol {} setup.",
-                    specifier, &referer_origin_url, specifier_url.scheme()
+                    specifier,
+                    &referer_origin_url,
+                    specifier_url.scheme()
                 )));
-            },
+            }
         };
 
         for resolver in resolvers {
