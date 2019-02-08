@@ -9,6 +9,8 @@ extern crate trust_dns_server;
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
+use std::sync::Arc;
+
 extern crate flatbuffers;
 
 #[macro_use]
@@ -19,7 +21,8 @@ extern crate libfly;
 
 use fly::runtime::*;
 use fly::settings::SETTINGS;
-use fly::{dns_server::DnsServer, fixed_runtime_selector::FixedRuntimeSelector};
+use fly::runtime_manager::RuntimeManager;
+use fly::{dns_server::DnsServer, standard_runtime_manager::StandardRuntimeManager};
 use fly::module_resolver::{ ModuleResolver, JsonSecretsResolver, LocalDiskModuleResolver };
 
 use env_logger::Env;
@@ -28,7 +31,7 @@ extern crate clap;
 
 use std::path::{ PathBuf };
 
-static mut SELECTOR: Option<FixedRuntimeSelector> = None;
+static mut SELECTOR: Option<Arc<StandardRuntimeManager>> = None;
 
 fn main() {
   let env = Env::default().filter_or("LOG_LEVEL", "info");
@@ -97,13 +100,20 @@ fn main() {
   info!("Module resolvers length {}", module_resolvers.len().to_string());
 
   let entry_file = matches.value_of("input").unwrap();
-  let mut runtime = Runtime::new(None, None, &SETTINGS.read().unwrap(), Some(module_resolvers));
 
-  debug!("Loading dev tools");
-  runtime.eval_file("v8env/dist/dev-tools.js");
-  runtime.eval("<installDevTools>", "installDevTools();");
-  debug!("Loading dev tools done");
-  runtime.eval(entry_file, &format!("dev.run('{}')", entry_file));
+  let rt_manager = StandardRuntimeManager::new();
+
+  let runtime = rt_manager.lock().unwrap().new_runtime(None, None, &SETTINGS, Some(module_resolvers));
+
+  {
+    let rt_ref_clone = runtime.clone();
+    let rt_lock = rt_ref_clone.lock().unwrap();
+    debug!("Loading dev tools");
+    rt_lock.eval_file("v8env/dist/dev-tools.js");
+    rt_lock.eval("<installDevTools>", "installDevTools();");
+    debug!("Loading dev tools done");
+    rt_lock.eval(entry_file, &format!("dev.run('{}')", entry_file));
+  }
 
   let port: u16 = match matches.value_of("port") {
     Some(pstr) => pstr.parse::<u16>().unwrap(),
@@ -113,13 +123,14 @@ fn main() {
   let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), port);
 
   tokio::run(future::lazy(move || -> Result<(), ()> {
+    let rt_lock = runtime.lock().unwrap();
     tokio::spawn(
-      runtime
+      rt_lock
+        .ptr.to_runtime()
         .run()
         .map_err(|e| error!("error running runtime event loop: {}", e)),
     );
-    unsafe { SELECTOR = Some(FixedRuntimeSelector::new(runtime)) }
-    let server = DnsServer::new(addr, unsafe {SELECTOR.as_ref().unwrap()});
+    let server = DnsServer::new(addr, rt_manager.clone());
     server.start();
     Ok(())
   }));

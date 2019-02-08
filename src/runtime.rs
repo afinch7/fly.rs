@@ -1,6 +1,7 @@
 extern crate http;
 extern crate libc;
 
+use crate::runtime_manager::{ RuntimeManagerCallbacks };
 use tokio;
 
 use tokio::runtime::current_thread;
@@ -25,6 +26,8 @@ use tokio::timer::Delay;
 
 use std::time::{Duration, Instant};
 
+use std::sync::{ Arc };
+
 use std::sync::RwLock;
 
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
@@ -32,6 +35,8 @@ use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use futures::future;
 
 use std::ptr;
+
+use uuid::Uuid;
 
 extern crate sha1; // SHA-1
 extern crate sha2; // SHA-256, etc.
@@ -52,7 +57,7 @@ use self::hyper::{Body, Method, StatusCode};
 use crate::msg;
 use flatbuffers::FlatBufferBuilder;
 
-use crate::errors::FlyError;
+use crate::errors::{ FlyResult, FlyError };
 
 extern crate log;
 
@@ -154,6 +159,7 @@ pub struct Runtime {
   timers: Mutex<HashMap<u32, oneshot::Sender<()>>>,
   pub responses: Mutex<HashMap<u32, oneshot::Sender<JsHttpResponse>>>,
   pub dns_responses: Mutex<HashMap<u32, oneshot::Sender<ops::dns::JsDnsResponse>>>,
+  pub service_responses: Mutex<HashMap<u32, oneshot::Sender<ops::service::JsServiceResponse>>>,
   pub streams: Mutex<HashMap<u32, mpsc::UnboundedSender<Vec<u8>>>>,
   pub cache_store: Box<cache_store::CacheStore + 'static + Send + Sync>,
   pub data_store: Box<data_store::DataStore + 'static + Send + Sync>,
@@ -161,9 +167,12 @@ pub struct Runtime {
   pub acme_store: Option<Box<acme_store::AcmeStore + 'static + Send + Sync>>,
   pub fetch_events: Option<mpsc::UnboundedSender<JsHttpRequest>>,
   pub resolv_events: Option<mpsc::UnboundedSender<ops::dns::JsDnsRequest>>,
+  pub serve_events: Option<mpsc::UnboundedSender<ops::service::JsServiceRequest>>,
   pub last_event_at: AtomicUsize,
   pub module_resolver_manager: Box<ModuleResolverManager>,
   metadata_cache: RwLock<HashMap<i32, Box<LoadedModule>>>,
+  manager_callbacks: Option<RuntimeManagerCallbacks>,
+  uuid: String,
   ready_ch: Option<oneshot::Sender<()>>,
   quit_ch: Option<oneshot::Receiver<()>>,
 }
@@ -239,10 +248,12 @@ impl Runtime {
       timers: Mutex::new(HashMap::new()),
       responses: Mutex::new(HashMap::new()),
       dns_responses: Mutex::new(HashMap::new()),
+      service_responses: Mutex::new(HashMap::new()),
       streams: Mutex::new(HashMap::new()),
       // stream_recv: Mutex::new(HashMap::new()),
       fetch_events: None,
       resolv_events: None,
+      serve_events: None,
       cache_store: match settings.cache_store {
         Some(ref store) => match store {
           CacheStore::Sqlite(conf) => {
@@ -287,6 +298,8 @@ impl Runtime {
         rt_module_resolvers,
         None,
       )),
+      manager_callbacks: None,
+      uuid: uuid::Uuid::new_v4().to_simple().to_string(),
       metadata_cache: RwLock::new(HashMap::new()),
     });
 
@@ -410,6 +423,20 @@ impl Runtime {
           Err(_) => return Some(Err(EventDispatchError::PoisonedLock)),
         },
       },
+      JsEvent::Serve(req) => match self.serve_events {
+        None => return None,
+        Some(ref ch) => match self.service_responses.lock() {
+          Ok (mut guard) => {
+            let (tx, rx) = oneshot::channel::<ops::service::JsServiceResponse>();
+            guard.insert(id, tx);
+            match ch.unbounded_send(req) {
+              Ok(_) => EventResponseChannel::Service(rx),
+              Err(e) => return Some(Err(EventDispatchError::Service(e))),
+            }
+          },
+          Err(_) => return Some(Err(EventDispatchError::PoisonedLock)),
+        },
+      },
     };
 
     if let Ok(epoch) = time::SystemTime::now().duration_since(time::UNIX_EPOCH) {
@@ -436,16 +463,30 @@ impl Runtime {
       locked_cache.insert(hash, Box::new(module_metadata));
     }
   }
+
+  pub fn register_rt_manager_callbacks(&mut self, manager_callbacks: RuntimeManagerCallbacks) {
+    self.manager_callbacks = Some(manager_callbacks);
+  }
+
+  pub fn receive_message(&self, sender: Uuid, message: String) -> FlyResult<String> {
+    return Ok("Test response".to_string());
+  }
+
+  pub fn get_uuid(&self) -> String {
+    return self.uuid.clone();
+  }
 }
 
 pub enum JsEvent {
   Fetch(JsHttpRequest),
   Resolv(ops::dns::JsDnsRequest),
+  Serve(ops::service::JsServiceRequest),
 }
 
 pub enum EventResponseChannel {
   Http(oneshot::Receiver<JsHttpResponse>),
   Dns(oneshot::Receiver<ops::dns::JsDnsResponse>),
+  Service(oneshot::Receiver<ops::service::JsServiceResponse>),
 }
 
 #[derive(Debug)]
@@ -453,6 +494,7 @@ pub enum EventDispatchError {
   PoisonedLock,
   Http(mpsc::SendError<JsHttpRequest>),
   Dns(mpsc::SendError<ops::dns::JsDnsRequest>),
+  Service(mpsc::SendError<ops::service::JsServiceRequest>),
 }
 
 #[cfg(debug_assertions)]
@@ -588,6 +630,7 @@ pub extern "C" fn msg_from_js(raw: *const js_runtime, buf: fly_buf, raw_buf: fly
     msg::Any::LoadModule => op_load_module,
     msg::Any::ImageApplyTransforms => ops::image::op_image_transform,
     msg::Any::AcmeGetChallenge => ops::acme::op_get_challenge,
+    msg::Any::ServiceResponse => ops::service::op_service_response,
     _ => unimplemented!(),
   };
 
@@ -1088,6 +1131,48 @@ fn op_add_event_ln(ptr: JsRuntime, base: &msg::Base, _raw: fly_buf) -> Box<Op> {
           }),
       );
       rt.resolv_events = Some(tx);
+    },
+    msg::EventType::Serve => {
+      let (tx, rx) = mpsc::unbounded::<ops::service::JsServiceRequest>();
+      let rt = ptr.to_runtime();
+      rt.spawn(
+        rx.map_err(|_| error!("error event receiving http request"))
+          .for_each(move |req| {
+            let builder = &mut FlatBufferBuilder::new();
+
+            let req_action = builder.create_string(req.action.as_str());
+
+            let req_data = builder.create_string(req.data.as_str().unwrap());
+
+            let req_msg = msg::ServiceRequest::create(
+              builder,
+              &msg::ServiceRequestArgs {
+                id: req.id,
+                action: Some(req_action),
+                data: Some(req_data),
+              }
+            );
+
+            let to_send = fly_buf_from(
+              serialize_response(
+                0,
+                builder,
+                msg::BaseArgs {
+                  msg: Some(req_msg.as_union_value()),
+                  msg_type: msg::Any::HttpRequest,
+                  ..Default::default()
+                },
+              )
+              .unwrap(),
+            );
+
+            ptr.send(to_send, None);
+
+            Ok(())
+          })
+          .and_then(|_| Ok(info!("done listening to http events."))),
+      );
+      rt.serve_events = Some(tx);
     }
   };
 

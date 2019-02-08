@@ -44,6 +44,8 @@ union Any {
   ImageReady,
   AcmeGetChallenge,
   AcmeGetChallengeReady,
+  ServiceRequest,
+  ServiceResponse,
 }
 
 enum ErrorKind: byte {
@@ -216,6 +218,7 @@ table DataDropCollection {
 enum EventType: byte {
   Fetch = 0,
   Resolv,
+  Serve,
 }
 
 table AddEventListener {
@@ -230,6 +233,18 @@ table LoadModule {
 table LoadModuleResp {
   origin_url: string;
   source_code: string;
+}
+
+table ServiceRequest {
+  id: uint;
+  action: string;
+  data: string;
+}
+
+table ServiceResponse {
+  id: uint;
+  success: bool;
+  data: string;
 }
 
 root_type Base;

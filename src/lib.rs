@@ -42,11 +42,11 @@ pub mod acme_store;
 
 pub mod settings;
 
-pub mod runtime_selector;
-pub use crate::runtime_selector::{RuntimeSelector, SelectorError};
+pub mod runtime_manager;
+pub use crate::runtime_manager::{RuntimeManager, RuntimeManagerError};
 
 pub mod dns_server;
-pub mod fixed_runtime_selector;
+pub mod standard_runtime_manager;
 pub mod http_server;
 
 pub mod metrics;

@@ -16,6 +16,8 @@ use self::trust_dns_server::authority::authority::LookupRecords;
 use self::trust_dns_server::server::{Request, RequestHandler, ResponseHandler, ServerFuture};
 use std::io;
 
+use std::sync::{ Mutex, Arc };
+
 use std::net::SocketAddr;
 
 extern crate flatbuffers;
@@ -24,15 +26,15 @@ use tokio::prelude::*;
 
 use crate::ops::dns::*;
 use crate::runtime::{EventResponseChannel, JsEvent};
-use crate::{get_next_stream_id, RuntimeSelector};
+use crate::{get_next_stream_id, RuntimeManager};
 
 pub struct DnsServer {
     addr: SocketAddr,
-    selector: &'static (RuntimeSelector + Send + Sync),
+    selector: Arc<Mutex<(RuntimeManager + Send + Sync)>>,
 }
 
 impl DnsServer {
-    pub fn new(addr: SocketAddr, selector: &'static (RuntimeSelector + Send + Sync)) -> Self {
+    pub fn new(addr: SocketAddr, selector: Arc<Mutex<(RuntimeManager + Send + Sync)>>) -> Self {
         DnsServer { addr, selector }
     }
     pub fn start(self) {
@@ -65,7 +67,11 @@ impl RequestHandler for DnsServer {
             .to_utf8();
         name.pop();
 
-        let rt = match self.selector.get_by_hostname(name.as_str()) {
+        info!("Locking Runtime Manager");
+
+        let rt_man_lock = self.selector.lock().unwrap();
+
+        let rt = match rt_man_lock.get_by_hostname(name.as_str()) {
             Ok(maybe_rt) => match maybe_rt {
                 Some(rt) => rt,
                 None => {
@@ -90,7 +96,9 @@ impl RequestHandler for DnsServer {
             }
         };
 
-        let rx = match rt.dispatch_event(
+        let rt_lock = rt.lock().unwrap();
+
+        let rx = match rt_lock.dispatch_event(
             eid,
             JsEvent::Resolv(JsDnsRequest {
                 id: eid,

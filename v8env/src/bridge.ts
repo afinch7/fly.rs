@@ -14,6 +14,7 @@ import { FlyResponse } from "./response";
 import { ReadableStream, ReadableStreamSource, StreamStrategy } from "@stardazed/streams";
 import { DNSRequest, DNSQuery, DNSResponse, DNSDataA, DNSDataAAAA, DNSDataCNAME, DNSDataMX, DNSDataNS, DNSDataPTR, DNSDataSOA, DNSDataSRV, DNSDataTXT } from './dns';
 import { isAcmeChallengeRequest, handleAcmeChallenge } from "./acme";
+import { ServiceRequest, ServiceResponse } from "./service";
 
 let nextCmdId = 1; // 0 is for events
 const promiseTable = new Map<number, util.Resolvable<fbs.Base>>();
@@ -179,6 +180,42 @@ export function addEventListener(name: string, fn: Function) {
       event_type = fbs.EventType.Resolv;
       break;
     }
+    case "serve": {
+      listenerTable.set(fbs.Any.ServiceRequest, (base: fbs.Base) => {
+        let msg = new fbs.ServiceRequest();
+        base.msg(msg);
+        let id = msg.id();
+        
+        const req = new ServiceRequest(msg.action(), msg.data());
+
+        try {
+          fn.call(window, {
+            request: req,
+            respondWith(resfn: any) {
+              try {
+                let ret = resfn;
+                if (typeof ret === "function") {
+                  ret = resfn();
+                }
+                if (ret instanceof Promise) {
+                  ret.then(handleServiceRes.bind(null, id)).catch(handleServiceError.bind(null, id));
+                } else if (ret instanceof ServiceResponse) {
+                  handleServiceRes(id, ret);
+                }
+              } catch (e) {
+                console.log("error in serve event respondWith");
+                handleServiceError(id, e);
+              }
+            }
+          })
+        } catch (e) {
+          console.log("error in serve event handler function");
+          handleServiceError(id, e);
+        }
+      })
+      event_type = fbs.EventType.Serve;
+      break;
+    }
   }
   const fbb = flatbuffers.createBuilder();
   fbs.AddEventListener.startAddEventListener(fbb);
@@ -326,6 +363,31 @@ function handleDNSRes(id: number, res: DNSResponse) {
   fbs.DnsResponse.addTruncated(fbb, !!res.truncated)
   fbs.DnsResponse.addAnswers(fbb, answersOffset);
   sendAsync(fbb, fbs.Any.DnsResponse, fbs.DnsResponse.endDnsResponse(fbb));
+}
+
+function handleServiceRes(id: number, res: ServiceResponse) {
+  const fbb = flatbuffers.createBuilder();
+
+  fbs.ServiceResponse.startServiceResponse(fbb);
+  fbs.ServiceResponse.addId(fbb, id);
+  fbs.ServiceResponse.addSuccess(fbb, true);
+
+  const fbsData = fbb.createString(res.dataJson);
+  
+  fbs.ServiceResponse.addData(fbb, fbsData);
+
+  sendAsync(fbb, fbs.Any.ServiceResponse, fbs.ServiceResponse.endServiceResponse(fbb));
+}
+
+function handleServiceError(id: number, err: Error) {
+  console.error("service error:", err.stack);
+  const fbb = flatbuffers.createBuilder();
+
+  fbs.ServiceResponse.startServiceResponse(fbb);
+  fbs.ServiceResponse.addId(fbb, id);
+  fbs.ServiceResponse.addSuccess(fbb, false);
+
+  sendAsync(fbb, fbs.Any.ServiceResponse, fbs.ServiceResponse.endServiceResponse(fbb));
 }
 
 function handleError(id: number, err: Error) {

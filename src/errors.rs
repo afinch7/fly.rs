@@ -4,6 +4,7 @@ use std;
 use std::fmt;
 use std::io;
 use url;
+use crate::runtime_manager::RuntimeManagerError;
 
 pub type FlyResult<T> = Result<T, FlyError>;
 
@@ -144,6 +145,15 @@ impl From<String> for FlyError {
   fn from(err: String) -> FlyError {
     FlyError {
       repr: Repr::Simple(err),
+    }
+  }
+}
+
+impl From<RuntimeManagerError> for FlyError {
+  #[inline]
+  fn from(_: RuntimeManagerError) -> FlyError {
+    FlyError {
+      repr: Repr::Simple("Errored with runtime manager error.".to_string()),
     }
   }
 }

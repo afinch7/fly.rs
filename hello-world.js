@@ -6,6 +6,10 @@ console.log("hello world")
 const helloWorldStr = "Hello World";
 const helloWorld = new TextEncoder().encode(helloWorldStr);
 
+addEventListener("serve", function (event) {
+  console.log(event);
+});
+
 addEventListener("fetch", function (event) {
   const req = event.request;
   // console.log("req url:", event.request.url);

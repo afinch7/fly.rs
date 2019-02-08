@@ -10,13 +10,15 @@ use crate::release::Release;
 use crate::settings::GLOBAL_SETTINGS;
 
 pub struct DistributedRuntimeSelector {
-    pub runtimes: RwLock<HashMap<String, Box<Runtime>>>,
+    uuid_to_runtime: RwLock<HashMap<String, Box<Runtime>>>,
+    hostname_to_runtime: RwLock<HashMap<String, Box<Runtime>>>,
 }
 
 impl DistributedRuntimeSelector {
     pub fn new() -> Self {
         DistributedRuntimeSelector {
-            runtimes: RwLock::new(HashMap::new()),
+            uuid_to_runtime: RwLock::new(HashMap::new()),
+            hostname_to_runtime: RwLock::new(HashMap::new()),
         }
     }
 }

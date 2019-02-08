@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 
 use crate::metrics::*;
 use crate::runtime::{EventResponseChannel, JsBody, JsEvent, JsHttpRequest, JsHttpResponse};
-use crate::{get_next_stream_id, RuntimeSelector};
+use crate::{get_next_stream_id, RuntimeManager};
 
 use hyper::body::Payload;
 use hyper::{header, Body, Request, Response, StatusCode};
@@ -25,7 +25,7 @@ lazy_static! {
 pub fn serve_http(
     tls: bool,
     req: Request<Body>,
-    selector: &RuntimeSelector,
+    selector: &RuntimeManager,
     remote_addr: SocketAddr,
 ) -> BoxedResponseFuture {
     let timer = time::Instant::now();
@@ -107,10 +107,12 @@ pub fn serve_http(
     };
     let stream_id = get_next_stream_id();
 
-    let rt_name = rt.name.clone();
-    let rt_version = rt.version.clone();
+    let rt_lock = rt.lock().unwrap();
 
-    match rt.dispatch_event(
+    let rt_name = rt_lock.name.clone();
+    let rt_version = rt_lock.version.clone();
+
+    match rt_lock.dispatch_event(
         stream_id,
         JsEvent::Fetch(JsHttpRequest {
             id: stream_id,
@@ -140,19 +142,19 @@ pub fn serve_http(
         None => future_response(
             simple_response(req_id, StatusCode::SERVICE_UNAVAILABLE, None),
             timer,
-            Some((rt.name.clone(), rt.version.clone())),
+            Some((rt_lock.name.clone(), rt_lock.version.clone())),
         ),
         Some(Err(e)) => {
             error!("error sending js http request: {:?}", e);
             future_response(
                 simple_response(req_id, StatusCode::INTERNAL_SERVER_ERROR, None),
                 timer,
-                Some((rt.name.clone(), rt.version.clone())),
+                Some((rt_lock.name.clone(), rt_lock.version.clone())),
             )
         }
         Some(Ok(EventResponseChannel::Http(rx))) => {
-            let rt_name = rt.name.clone();
-            let rt_version = rt.version.clone();
+            let rt_name = rt_lock.name.clone();
+            let rt_version = rt_lock.version.clone();
             wrap_future(
                 rx.and_then(move |res: JsHttpResponse| {
                     let (mut parts, mut body) = Response::<Body>::default().into_parts();
@@ -210,7 +212,7 @@ pub fn serve_http(
                     ))
                 }),
                 timer,
-                Some((rt.name.clone(), rt.version.clone())),
+                Some((rt_lock.name.clone(), rt_lock.version.clone())),
             )
         }
         _ => unimplemented!(),
