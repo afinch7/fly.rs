@@ -9,7 +9,9 @@ import * as textEncoding from "./text-encoding";
 import { FlyResponse } from "./response";
 import * as fetch_ from './fetch';
 import * as resolv_ from './resolv';
+import * as serviceRequest_ from "./service_request";
 import * as dns from './dns';
+import * as service from "./service";
 import * as crypto_ from "./crypto";
 import cache_ from "./cache";
 import { Image } from "./fly/image";
@@ -54,6 +56,8 @@ declare global {
 
   const fetch: typeof fetch_.fetch;
 
+  const serviceRequest: typeof serviceRequest_.serviceRequest;
+
   // tslint:disable:variable-name
   let TextEncoder: typeof textEncoding.TextEncoder;
   let TextDecoder: typeof textEncoding.TextDecoder;
@@ -85,6 +89,8 @@ declare global {
   const DNSMessageType: typeof dns.DNSMessageType;
   const DNSOpCode: typeof dns.DNSOpCode;
   const DNSResponseCode: typeof dns.DNSResponseCode;
+  const ServiceRequest: typeof service.ServiceRequest;
+  const ServiceResponse: typeof service.ServiceResponse;
 }
 
 // A reference to the global object.
@@ -121,6 +127,7 @@ export type FormData = domTypes.FormData;
 
 window.fetch = fetch_.fetch;
 window.resolv = resolv_.resolv;
+window.serviceRequest = serviceRequest_.serviceRequest;
 window.crypto = crypto_.crypto;
 window.cache = cache_;
 window.loadModule = loadModule;
@@ -141,6 +148,8 @@ window.DNSRecordType = dns.DNSRecordType;
 window.DNSMessageType = dns.DNSMessageType;
 window.DNSOpCode = dns.DNSOpCode;
 window.DNSResponseCode = dns.DNSResponseCode;
+window.ServiceRequest = service.ServiceRequest;
+window.ServiceResponse = service.ServiceResponse;
 
 const conversionUtils = {
   arrayBufferToStr: arrayBufferToString,

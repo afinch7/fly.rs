@@ -14,7 +14,7 @@ extern crate libfly;
 use fly::module_resolver::{JsonSecretsResolver, LocalDiskModuleResolver, ModuleResolver};
 use fly::runtime::*;
 use fly::settings::SETTINGS;
-use fly::{dns_server::DnsServer, standard_runtime_manager::StandardRuntimeManager, runtime_manager::RuntimeManager};
+use fly::{dns_server::DnsServer, standard_runtime_manager::StandardRuntimeManager, runtime_manager::RuntimeManager, runtime_manager::RuntimeManagerError};
 extern crate clap;
 use std::path::PathBuf;
 
@@ -92,7 +92,7 @@ pub fn exec(args: &ArgMatches<'_>) -> FlyCliResult<()> {
 
     let rt_manager = StandardRuntimeManager::new();
 
-    let runtime = rt_manager.lock().unwrap().new_runtime(RuntimeConfig {
+    let runtime = rt_manager.write().unwrap().new_runtime(RuntimeConfig {
         name: None,
         version: None,
         settings: &SETTINGS.read().unwrap(),
@@ -104,12 +104,19 @@ pub fn exec(args: &ArgMatches<'_>) -> FlyCliResult<()> {
     });
 
     {
-        let rt_ref_clone = runtime.clone();
-        let rt_lock = rt_ref_clone.lock().unwrap();
-        debug!("{}", "TEST1".to_string());
+        let rt_arc_clone = runtime.clone();
+        let rt_lock = rt_arc_clone.read().unwrap();
         rt_lock.eval_file_with_dev_tools(entry_file);
-        debug!("{}", "TEST2".to_string());
+        match rt_manager.write().unwrap().bind_servicename_to(uuid::Uuid::parse_str(rt_lock.get_uuid().as_str()).unwrap(), "test") {
+            Ok(v) => {
+                debug!("Assigned name success!");
+            },
+            Err(RuntimeManagerError::Failure(e)) => {
+                debug!("Failed to assign: {}", e);
+            },
+        };
     }
+    
 
     
     let port: u16 = match args.value_of("port") {
@@ -120,7 +127,7 @@ pub fn exec(args: &ArgMatches<'_>) -> FlyCliResult<()> {
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), port);
 
     tokio::run(future::lazy(move || -> Result<(), ()> {
-        let rt_lock = runtime.lock().unwrap();
+        let rt_lock = runtime.read().unwrap();
         tokio::spawn(
             rt_lock
                 .ptr.to_runtime()

@@ -23,6 +23,7 @@ pub fn op_add_event_ln(rt: &mut Runtime, base: &msg::Base, _raw: fly_buf) -> Box
             rt.spawn(
                 rx.map_err(|_| error!("error event receiving http request"))
                     .for_each(move |req| {
+                        debug!("Listener received new http event.");
                         let builder = &mut FlatBufferBuilder::new();
 
                         let req_url = builder.create_string(req.url.as_str());
@@ -104,6 +105,7 @@ pub fn op_add_event_ln(rt: &mut Runtime, base: &msg::Base, _raw: fly_buf) -> Box
             rt.spawn(
                 rx.map_err(|_| error!("error event receiving http request"))
                     .for_each(move |req| {
+                        debug!("Listener received new resolve event.");
                         let builder = &mut FlatBufferBuilder::new();
 
                         let queries: Vec<_> = req
@@ -188,47 +190,48 @@ pub fn op_add_event_ln(rt: &mut Runtime, base: &msg::Base, _raw: fly_buf) -> Box
             rt.resolv_events = Some(tx);
         },
         msg::EventType::Serve => {
+            debug!("Register service event listener.");
             let (tx, rx) = mpsc::unbounded::<JsServiceRequest>();
-            let rt = ptr.to_runtime();
             rt.spawn(
-                rx.map_err(|_| error!("error event receiving http request"))
-                .for_each(move |req| {
-                    let builder = &mut FlatBufferBuilder::new();
+                rx.map_err(|_| error!("error event receiving service request"))
+                    .for_each(move |req| {
+                        debug!("Listener received new service event.");
+                        let builder = &mut FlatBufferBuilder::new();
 
-                    let req_action = builder.create_string(req.action.as_str());
+                        let req_sender = builder.create_string(req.sender.as_str());
 
-                    let req_data = builder.create_string(req.data.as_str().unwrap());
+                        let req_data = builder.create_string(req.data.as_str());
 
-                    let req_msg = msg::ServiceRequest::create(
-                        builder,
-                        &msg::ServiceRequestArgs {
-                            id: req.id,
-                            action: Some(req_action),
-                            data: Some(req_data),
-                        }
-                    );
+                        let req_msg = msg::ServiceRequest::create(
+                            builder,
+                            &msg::ServiceRequestArgs {
+                                id: req.id,
+                                sender: Some(req_sender),
+                                data: Some(req_data),
+                            }
+                        );
 
-                    let to_send = fly_buf_from(
-                    serialize_response(
-                        0,
-                        builder,
-                        msg::BaseArgs {
-                        msg: Some(req_msg.as_union_value()),
-                        msg_type: msg::Any::HttpRequest,
-                        ..Default::default()
-                        },
-                    )
-                    .unwrap(),
-                    );
+                        let to_send = fly_buf_from(
+                            serialize_response(
+                                0,
+                                builder,
+                                msg::BaseArgs {
+                                msg: Some(req_msg.as_union_value()),
+                                msg_type: msg::Any::ServiceRequest,
+                                ..Default::default()
+                                },
+                            )
+                            .unwrap(),
+                        );
 
-                    ptr.send(to_send, None);
+                        ptr.send(to_send, None);
 
-                    Ok(())
-                })
-                .and_then(|_| Ok(info!("done listening to http events."))),
+                        Ok(())
+                    })
+                    .and_then(|_| Ok(info!("done listening to service events."))),
             );
             rt.serve_events = Some(tx);
-        }
+        },
     };
 
     ok_future(None)

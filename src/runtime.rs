@@ -122,7 +122,7 @@ pub struct Runtime {
   pub msg_handler: Box<MessageHandler>,
   pub permissions: RuntimePermissions,
   metadata_cache: RwLock<HashMap<i32, Box<LoadedModule>>>,
-  manager_callbacks: Option<RuntimeManagerCallbacks>,
+  pub manager_callbacks: Option<RuntimeManagerCallbacks>,
   uuid: String,
   ready_ch: Option<oneshot::Sender<()>>,
   quit_ch: Option<oneshot::Receiver<()>>,
@@ -405,6 +405,7 @@ impl Runtime {
         None => return None,
         Some(ref ch) => match self.service_responses.lock() {
           Ok (mut guard) => {
+            debug!("Dispatching service event.");
             let (tx, rx) = oneshot::channel::<JsServiceResponse>();
             guard.insert(id, tx);
             match ch.unbounded_send(req) {
@@ -444,10 +445,6 @@ impl Runtime {
 
   pub fn register_rt_manager_callbacks(&mut self, manager_callbacks: RuntimeManagerCallbacks) {
     self.manager_callbacks = Some(manager_callbacks);
-  }
-
-  pub fn receive_message(&self, sender: uuid::Uuid, message: String) -> FlyResult<String> {
-    return Ok("Test response".to_string());
   }
 
   pub fn get_uuid(&self) -> String {

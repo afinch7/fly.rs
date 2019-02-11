@@ -188,7 +188,7 @@ export function addEventListener(name: string, fn: Function) {
         base.msg(msg);
         let id = msg.id();
         
-        const req = new ServiceRequest(msg.action(), msg.data());
+        const req = new ServiceRequest(msg.sender(), msg.data());
 
         try {
           fn.call(window, {

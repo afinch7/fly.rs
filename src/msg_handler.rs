@@ -43,6 +43,7 @@ impl MessageHandler for DefaultMessageHandler {
             msg::Any::LoadModule => ops::modules::op_load_module,
             msg::Any::ImageApplyTransforms => ops::image::op_image_transform,
             msg::Any::AcmeGetChallenge => ops::acme::op_get_challenge,
+            msg::Any::RequestServiceRequest => ops::service::op_request_service_request,
             msg::Any::ServiceResponse => ops::service::op_service_response,
             msg::Any::OsExit => ops::os::op_exit,
             _ => unimplemented!(),

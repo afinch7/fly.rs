@@ -13,7 +13,7 @@ use floating_duration::TimeAsFloat;
 use std::io;
 use std::time;
 
-use std::sync::{ Mutex, Arc };
+use std::sync::{ RwLock, Arc };
 
 use slog::{o, slog_debug, slog_error, slog_info};
 
@@ -38,7 +38,7 @@ struct RequestInfo {
 pub fn serve_http(
     tls: bool,
     req: Request<Body>,
-    selector: Arc<Mutex<(RuntimeManager + Send + Sync)>>,
+    selector: Arc<RwLock<(RuntimeManager + Send + Sync)>>,
     remote_addr: SocketAddr,
 ) -> BoxedResponseFuture {
     let mut request_info = RequestInfo {
@@ -109,7 +109,7 @@ pub fn serve_http(
 
     request_info.url = url.to_owned();
 
-    let rt_man_lock = selector.lock().unwrap();
+    let rt_man_lock = selector.read().unwrap();
 
     let rt = match rt_man_lock.get_by_hostname(host) {
         Ok(maybe_rt) => match maybe_rt {
@@ -136,7 +136,7 @@ pub fn serve_http(
 
     let stream_id = get_next_stream_id();
 
-    let rt_lock = rt.lock().unwrap();
+    let rt_lock = rt.read().unwrap();
     let rt_name = rt_lock.name.clone();
     let rt_version = rt_lock.version.clone();
     let logger =

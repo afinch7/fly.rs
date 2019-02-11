@@ -49,6 +49,8 @@ union Any {
   AcmeGetChallengeReady,
   ServiceRequest,
   ServiceResponse,
+  RequestServiceRequest,
+  RequestServiceResponse,
   OsExit,
 }
 
@@ -222,12 +224,22 @@ table LoadModuleResp {
 
 table ServiceRequest {
   id: uint;
-  action: string;
+  sender: string;
   data: string;
 }
 
 table ServiceResponse {
   id: uint;
+  success: bool;
+  data: string;
+}
+
+table RequestServiceRequest {
+  destination_name: string;
+  data: string;
+}
+
+table RequestServiceResponse {
   success: bool;
   data: string;
 }

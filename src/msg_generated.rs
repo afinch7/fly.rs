@@ -742,12 +742,14 @@ pub enum Any {
   AcmeGetChallengeReady = 41,
   ServiceRequest = 42,
   ServiceResponse = 43,
-  OsExit = 44,
+  RequestServiceRequest = 44,
+  RequestServiceResponse = 45,
+  OsExit = 46,
 
 }
 
 const ENUM_MIN_ANY: u8 = 0;
-const ENUM_MAX_ANY: u8 = 44;
+const ENUM_MAX_ANY: u8 = 46;
 
 impl<'a> flatbuffers::Follow<'a> for Any {
   type Inner = Self;
@@ -781,7 +783,7 @@ impl flatbuffers::Push for Any {
 }
 
 #[allow(non_camel_case_types)]
-const ENUM_VALUES_ANY:[Any; 45] = [
+const ENUM_VALUES_ANY:[Any; 47] = [
   Any::NONE,
   Any::TimerStart,
   Any::TimerReady,
@@ -826,11 +828,13 @@ const ENUM_VALUES_ANY:[Any; 45] = [
   Any::AcmeGetChallengeReady,
   Any::ServiceRequest,
   Any::ServiceResponse,
+  Any::RequestServiceRequest,
+  Any::RequestServiceResponse,
   Any::OsExit
 ];
 
 #[allow(non_camel_case_types)]
-const ENUM_NAMES_ANY:[&'static str; 45] = [
+const ENUM_NAMES_ANY:[&'static str; 47] = [
     "NONE",
     "TimerStart",
     "TimerReady",
@@ -875,6 +879,8 @@ const ENUM_NAMES_ANY:[&'static str; 45] = [
     "AcmeGetChallengeReady",
     "ServiceRequest",
     "ServiceResponse",
+    "RequestServiceRequest",
+    "RequestServiceResponse",
     "OsExit"
 ];
 
@@ -5474,6 +5480,26 @@ impl<'a> Base<'a> {
 
   #[inline]
   #[allow(non_snake_case)]
+  pub fn msg_as_request_service_request(&'a self) -> Option<RequestServiceRequest> {
+    if self.msg_type() == Any::RequestServiceRequest {
+      self.msg().map(|u| RequestServiceRequest::init_from_table(u))
+    } else {
+      None
+    }
+  }
+
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn msg_as_request_service_response(&'a self) -> Option<RequestServiceResponse> {
+    if self.msg_type() == Any::RequestServiceResponse {
+      self.msg().map(|u| RequestServiceResponse::init_from_table(u))
+    } else {
+      None
+    }
+  }
+
+  #[inline]
+  #[allow(non_snake_case)]
   pub fn msg_as_os_exit(&'a self) -> Option<OsExit> {
     if self.msg_type() == Any::OsExit {
       self.msg().map(|u| OsExit::init_from_table(u))
@@ -7263,13 +7289,13 @@ impl<'a> ServiceRequest<'a> {
         args: &'args ServiceRequestArgs<'args>) -> flatbuffers::WIPOffset<ServiceRequest<'bldr>> {
       let mut builder = ServiceRequestBuilder::new(_fbb);
       if let Some(x) = args.data { builder.add_data(x); }
-      if let Some(x) = args.action { builder.add_action(x); }
+      if let Some(x) = args.sender { builder.add_sender(x); }
       builder.add_id(args.id);
       builder.finish()
     }
 
     pub const VT_ID: flatbuffers::VOffsetT = 4;
-    pub const VT_ACTION: flatbuffers::VOffsetT = 6;
+    pub const VT_SENDER: flatbuffers::VOffsetT = 6;
     pub const VT_DATA: flatbuffers::VOffsetT = 8;
 
   #[inline]
@@ -7277,8 +7303,8 @@ impl<'a> ServiceRequest<'a> {
     self._tab.get::<u32>(ServiceRequest::VT_ID, Some(0)).unwrap()
   }
   #[inline]
-  pub fn action(&self) -> Option<&'a str> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ServiceRequest::VT_ACTION, None)
+  pub fn sender(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ServiceRequest::VT_SENDER, None)
   }
   #[inline]
   pub fn data(&self) -> Option<&'a str> {
@@ -7288,7 +7314,7 @@ impl<'a> ServiceRequest<'a> {
 
 pub struct ServiceRequestArgs<'a> {
     pub id: u32,
-    pub action: Option<flatbuffers::WIPOffset<&'a  str>>,
+    pub sender: Option<flatbuffers::WIPOffset<&'a  str>>,
     pub data: Option<flatbuffers::WIPOffset<&'a  str>>,
 }
 impl<'a> Default for ServiceRequestArgs<'a> {
@@ -7296,7 +7322,7 @@ impl<'a> Default for ServiceRequestArgs<'a> {
     fn default() -> Self {
         ServiceRequestArgs {
             id: 0,
-            action: None,
+            sender: None,
             data: None,
         }
     }
@@ -7311,8 +7337,8 @@ impl<'a: 'b, 'b> ServiceRequestBuilder<'a, 'b> {
     self.fbb_.push_slot::<u32>(ServiceRequest::VT_ID, id, 0);
   }
   #[inline]
-  pub fn add_action(&mut self, action: flatbuffers::WIPOffset<&'b  str>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ServiceRequest::VT_ACTION, action);
+  pub fn add_sender(&mut self, sender: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ServiceRequest::VT_SENDER, sender);
   }
   #[inline]
   pub fn add_data(&mut self, data: flatbuffers::WIPOffset<&'b  str>) {
@@ -7428,6 +7454,182 @@ impl<'a: 'b, 'b> ServiceResponseBuilder<'a, 'b> {
   }
   #[inline]
   pub fn finish(self) -> flatbuffers::WIPOffset<ServiceResponse<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+pub enum RequestServiceRequestOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct RequestServiceRequest<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for RequestServiceRequest<'a> {
+    type Inner = RequestServiceRequest<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self {
+            _tab: flatbuffers::Table { buf: buf, loc: loc },
+        }
+    }
+}
+
+impl<'a> RequestServiceRequest<'a> {
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        RequestServiceRequest {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args RequestServiceRequestArgs<'args>) -> flatbuffers::WIPOffset<RequestServiceRequest<'bldr>> {
+      let mut builder = RequestServiceRequestBuilder::new(_fbb);
+      if let Some(x) = args.data { builder.add_data(x); }
+      if let Some(x) = args.destination_name { builder.add_destination_name(x); }
+      builder.finish()
+    }
+
+    pub const VT_DESTINATION_NAME: flatbuffers::VOffsetT = 4;
+    pub const VT_DATA: flatbuffers::VOffsetT = 6;
+
+  #[inline]
+  pub fn destination_name(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(RequestServiceRequest::VT_DESTINATION_NAME, None)
+  }
+  #[inline]
+  pub fn data(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(RequestServiceRequest::VT_DATA, None)
+  }
+}
+
+pub struct RequestServiceRequestArgs<'a> {
+    pub destination_name: Option<flatbuffers::WIPOffset<&'a  str>>,
+    pub data: Option<flatbuffers::WIPOffset<&'a  str>>,
+}
+impl<'a> Default for RequestServiceRequestArgs<'a> {
+    #[inline]
+    fn default() -> Self {
+        RequestServiceRequestArgs {
+            destination_name: None,
+            data: None,
+        }
+    }
+}
+pub struct RequestServiceRequestBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> RequestServiceRequestBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_destination_name(&mut self, destination_name: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(RequestServiceRequest::VT_DESTINATION_NAME, destination_name);
+  }
+  #[inline]
+  pub fn add_data(&mut self, data: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(RequestServiceRequest::VT_DATA, data);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> RequestServiceRequestBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    RequestServiceRequestBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<RequestServiceRequest<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+pub enum RequestServiceResponseOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct RequestServiceResponse<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for RequestServiceResponse<'a> {
+    type Inner = RequestServiceResponse<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self {
+            _tab: flatbuffers::Table { buf: buf, loc: loc },
+        }
+    }
+}
+
+impl<'a> RequestServiceResponse<'a> {
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        RequestServiceResponse {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args RequestServiceResponseArgs<'args>) -> flatbuffers::WIPOffset<RequestServiceResponse<'bldr>> {
+      let mut builder = RequestServiceResponseBuilder::new(_fbb);
+      if let Some(x) = args.data { builder.add_data(x); }
+      builder.add_success(args.success);
+      builder.finish()
+    }
+
+    pub const VT_SUCCESS: flatbuffers::VOffsetT = 4;
+    pub const VT_DATA: flatbuffers::VOffsetT = 6;
+
+  #[inline]
+  pub fn success(&self) -> bool {
+    self._tab.get::<bool>(RequestServiceResponse::VT_SUCCESS, Some(false)).unwrap()
+  }
+  #[inline]
+  pub fn data(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(RequestServiceResponse::VT_DATA, None)
+  }
+}
+
+pub struct RequestServiceResponseArgs<'a> {
+    pub success: bool,
+    pub data: Option<flatbuffers::WIPOffset<&'a  str>>,
+}
+impl<'a> Default for RequestServiceResponseArgs<'a> {
+    #[inline]
+    fn default() -> Self {
+        RequestServiceResponseArgs {
+            success: false,
+            data: None,
+        }
+    }
+}
+pub struct RequestServiceResponseBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> RequestServiceResponseBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_success(&mut self, success: bool) {
+    self.fbb_.push_slot::<bool>(RequestServiceResponse::VT_SUCCESS, success, false);
+  }
+  #[inline]
+  pub fn add_data(&mut self, data: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(RequestServiceResponse::VT_DATA, data);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> RequestServiceResponseBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    RequestServiceResponseBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<RequestServiceResponse<'a>> {
     let o = self.fbb_.end_table(self.start_);
     flatbuffers::WIPOffset::new(o.value())
   }

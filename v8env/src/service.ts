@@ -2,7 +2,7 @@
 export class ServiceRequest {
 
     constructor(
-        readonly action: string,
+        readonly sender: string,
         private readonly dataJson: string,
     ) {
     }
@@ -16,6 +16,7 @@ export class ServiceRequest {
 export class ServiceResponse {
     
     constructor(
+        readonly success: boolean,
         readonly data: any,
     ) {
     }

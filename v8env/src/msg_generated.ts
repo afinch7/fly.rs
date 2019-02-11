@@ -169,7 +169,9 @@ export enum Any{
   AcmeGetChallengeReady= 41,
   ServiceRequest= 42,
   ServiceResponse= 43,
-  OsExit= 44
+  RequestServiceRequest= 44,
+  RequestServiceResponse= 45,
+  OsExit= 46
 };
 
 /**
@@ -6834,9 +6836,9 @@ mutate_id(value:number):boolean {
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array|null
  */
-action():string|null
-action(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-action(optionalEncoding?:any):string|Uint8Array|null {
+sender():string|null
+sender(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+sender(optionalEncoding?:any):string|Uint8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 };
@@ -6869,10 +6871,10 @@ static addId(builder:flatbuffers.Builder, id:number) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset actionOffset
+ * @param flatbuffers.Offset senderOffset
  */
-static addAction(builder:flatbuffers.Builder, actionOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, actionOffset, 0);
+static addSender(builder:flatbuffers.Builder, senderOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(1, senderOffset, 0);
 };
 
 /**
@@ -7013,6 +7015,182 @@ static addData(builder:flatbuffers.Builder, dataOffset:flatbuffers.Offset) {
  * @returns flatbuffers.Offset
  */
 static endServiceResponse(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
+}
+/**
+ * @constructor
+ */
+export class RequestServiceRequest {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns RequestServiceRequest
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):RequestServiceRequest {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param RequestServiceRequest= obj
+ * @returns RequestServiceRequest
+ */
+static getRootAsRequestServiceRequest(bb:flatbuffers.ByteBuffer, obj?:RequestServiceRequest):RequestServiceRequest {
+  return (obj || new RequestServiceRequest).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+destinationName():string|null
+destinationName(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+destinationName(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+data():string|null
+data(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+data(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startRequestServiceRequest(builder:flatbuffers.Builder) {
+  builder.startObject(2);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset destinationNameOffset
+ */
+static addDestinationName(builder:flatbuffers.Builder, destinationNameOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, destinationNameOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset dataOffset
+ */
+static addData(builder:flatbuffers.Builder, dataOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(1, dataOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endRequestServiceRequest(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
+}
+/**
+ * @constructor
+ */
+export class RequestServiceResponse {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns RequestServiceResponse
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):RequestServiceResponse {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param RequestServiceResponse= obj
+ * @returns RequestServiceResponse
+ */
+static getRootAsRequestServiceResponse(bb:flatbuffers.ByteBuffer, obj?:RequestServiceResponse):RequestServiceResponse {
+  return (obj || new RequestServiceResponse).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @returns boolean
+ */
+success():boolean {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
+};
+
+/**
+ * @param boolean value
+ * @returns boolean
+ */
+mutate_success(value:boolean):boolean {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+
+  if (offset === 0) {
+    return false;
+  }
+
+  this.bb!.writeInt8(this.bb_pos + offset, +value);
+  return true;
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+data():string|null
+data(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+data(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startRequestServiceResponse(builder:flatbuffers.Builder) {
+  builder.startObject(2);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param boolean success
+ */
+static addSuccess(builder:flatbuffers.Builder, success:boolean) {
+  builder.addFieldInt8(0, +success, +false);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset dataOffset
+ */
+static addData(builder:flatbuffers.Builder, dataOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(1, dataOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endRequestServiceResponse(builder:flatbuffers.Builder):flatbuffers.Offset {
   var offset = builder.endObject();
   return offset;
 };

@@ -6,9 +6,10 @@ console.log("hello world")
 const helloWorldStr = "Hello World";
 const helloWorld = new TextEncoder().encode(helloWorldStr);
 
-/*addEventListener("serve", function (event) {
-  console.log(event);
-});*/
+addEventListener("serve", function (event) {
+  console.log("Recieved serve request");
+  event.respondWith(new ServiceResponse(true, { data: "test" }));
+});
 
 addEventListener("fetch", function (event) {
   const req = event.request;
@@ -129,3 +130,7 @@ addEventListener("resolv", event => {
     ], { authoritative: true })
   })
 })
+
+setTimeout(() => {
+  console.log(serviceRequest("test", { data: "test" }));
+}, 5000);

@@ -68,12 +68,12 @@ pub struct JsDnsQuery {
 #[derive(Debug)]
 pub struct JsServiceRequest {
   pub id: u32,
-  pub action: String,
-  pub data: serde_json::Value,
+  pub sender: String,
+  pub data: String,
 }
 
 #[derive(Debug)]
 pub struct JsServiceResponse {
   pub success: bool,
-  pub data: serde_json::Value,
+  pub data: String,
 }

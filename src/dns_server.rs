@@ -10,7 +10,7 @@ use trust_dns_server::authority::authority::LookupRecords;
 use std::io;
 use trust_dns_server::server::{Request, RequestHandler, ResponseHandler, ServerFuture};
 
-use std::sync::{ Mutex, Arc };
+use std::sync::{ RwLock, Arc };
 
 use std::net::SocketAddr;
 
@@ -23,11 +23,11 @@ use crate::utils::*;
 
 pub struct DnsServer {
     addr: SocketAddr,
-    selector: Arc<Mutex<(RuntimeManager + Send + Sync)>>,
+    selector: Arc<RwLock<(RuntimeManager + Send + Sync)>>,
 }
 
 impl DnsServer {
-    pub fn new(addr: SocketAddr, selector: Arc<Mutex<(RuntimeManager + Send + Sync)>>) -> Self {
+    pub fn new(addr: SocketAddr, selector: Arc<RwLock<(RuntimeManager + Send + Sync)>>) -> Self {
         DnsServer { addr, selector }
     }
     pub fn start(self) {
@@ -60,9 +60,7 @@ impl RequestHandler for DnsServer {
             .to_utf8();
         name.pop();
 
-        info!("Locking Runtime Manager");
-
-        let rt_man_lock = self.selector.lock().unwrap();
+        let rt_man_lock = self.selector.read().unwrap();
 
         let rt = match rt_man_lock.get_by_hostname(name.as_str()) {
             Ok(maybe_rt) => match maybe_rt {
@@ -89,7 +87,7 @@ impl RequestHandler for DnsServer {
             }
         };
 
-        let rt_lock = rt.lock().unwrap();
+        let rt_lock = rt.read().unwrap();
 
         let rx = match rt_lock.dispatch_event(
             eid,

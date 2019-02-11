@@ -50,7 +50,7 @@ pub fn exec(args: &ArgMatches<'_>) -> FlyCliResult<()> {
 
     let rt_manager = StandardRuntimeManager::new();
 
-    let mut runtime = rt_manager.lock().unwrap().new_runtime(RuntimeConfig {
+    let runtime = rt_manager.write().unwrap().new_runtime(RuntimeConfig {
         name: None,
         version: None,
         settings: &SETTINGS.read().unwrap(),
@@ -63,7 +63,7 @@ pub fn exec(args: &ArgMatches<'_>) -> FlyCliResult<()> {
 
     {
         let rt_ref_clone = runtime.clone();
-        let rt_lock = rt_ref_clone.lock().unwrap();
+        let rt_lock = rt_ref_clone.read().unwrap();
         if args.is_present("lib") {
             for lib_path in glob(args.values_of("lib").unwrap().collect(), None)? {
                 rt_lock.eval_file(&lib_path);
@@ -113,7 +113,7 @@ pub fn exec(args: &ArgMatches<'_>) -> FlyCliResult<()> {
         });
 
     tokio::run(future::lazy(move || {
-        let rt_lock = runtime.lock().unwrap();
+        let rt_lock = runtime.read().unwrap();
         tokio::spawn(
             rt_lock
                 .ptr.to_runtime()
