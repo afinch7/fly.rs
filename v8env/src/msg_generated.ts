@@ -97,7 +97,19 @@ export enum DnsRecordData{
  * @enum
  */
 export enum ImageTransformType{
-  ImageWebPEncode= 0
+  WebPEncode= 0,
+  Resize= 1
+};
+
+/**
+ * @enum
+ */
+export enum ImageSamplingFilter{
+  Nearest= 0,
+  Triangle= 1,
+  CatmullRom= 2,
+  Gaussian= 3,
+  Lanczos3= 4
 };
 
 /**
@@ -105,7 +117,8 @@ export enum ImageTransformType{
  */
 export enum ImageTransformOptions{
   NONE= 0,
-  ImageWebPEncode= 1
+  ImageWebPEncode= 1,
+  ImageResize= 2
 };
 
 /**
@@ -142,19 +155,21 @@ export enum Any{
   DataGet= 27,
   DataGetReady= 28,
   DataDel= 29,
-  DataDropCollection= 30,
-  DnsQuery= 31,
-  DnsRequest= 32,
-  DnsResponse= 33,
-  AddEventListener= 34,
-  LoadModule= 35,
-  LoadModuleResp= 36,
-  ImageApplyTransforms= 37,
-  ImageReady= 38,
-  AcmeGetChallenge= 39,
-  AcmeGetChallengeReady= 40,
-  ServiceRequest= 41,
-  ServiceResponse= 42
+  DataIncr= 30,
+  DataDropCollection= 31,
+  DnsQuery= 32,
+  DnsRequest= 33,
+  DnsResponse= 34,
+  AddEventListener= 35,
+  LoadModule= 36,
+  LoadModuleResp= 37,
+  ImageApplyTransforms= 38,
+  ImageReady= 39,
+  AcmeGetChallenge= 40,
+  AcmeGetChallengeReady= 41,
+  ServiceRequest= 42,
+  ServiceResponse= 43,
+  OsExit= 44
 };
 
 /**
@@ -284,11 +299,6 @@ static endDnsA(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDnsA(builder:flatbuffers.Builder, ipOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DnsA.startDnsA(builder);
-  DnsA.addIp(builder, ipOffset);
-  return DnsA.endDnsA(builder);
-}
 }
 /**
  * @constructor
@@ -352,11 +362,6 @@ static endDnsAaaa(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDnsAaaa(builder:flatbuffers.Builder, ipOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DnsAaaa.startDnsAaaa(builder);
-  DnsAaaa.addIp(builder, ipOffset);
-  return DnsAaaa.endDnsAaaa(builder);
-}
 }
 /**
  * @constructor
@@ -420,11 +425,6 @@ static endDnsCname(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDnsCname(builder:flatbuffers.Builder, nameOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DnsCname.startDnsCname(builder);
-  DnsCname.addName(builder, nameOffset);
-  return DnsCname.endDnsCname(builder);
-}
 }
 /**
  * @constructor
@@ -519,12 +519,6 @@ static endDnsMx(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDnsMx(builder:flatbuffers.Builder, preference:number, exchangeOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DnsMx.startDnsMx(builder);
-  DnsMx.addPreference(builder, preference);
-  DnsMx.addExchange(builder, exchangeOffset);
-  return DnsMx.endDnsMx(builder);
-}
 }
 /**
  * @constructor
@@ -588,11 +582,6 @@ static endDnsNs(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDnsNs(builder:flatbuffers.Builder, nameOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DnsNs.startDnsNs(builder);
-  DnsNs.addName(builder, nameOffset);
-  return DnsNs.endDnsNs(builder);
-}
 }
 /**
  * @constructor
@@ -656,11 +645,6 @@ static endDnsPtr(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDnsPtr(builder:flatbuffers.Builder, nameOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DnsPtr.startDnsPtr(builder);
-  DnsPtr.addName(builder, nameOffset);
-  return DnsPtr.endDnsPtr(builder);
-}
 }
 /**
  * @constructor
@@ -898,17 +882,6 @@ static endDnsSoa(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDnsSoa(builder:flatbuffers.Builder, mnameOffset:flatbuffers.Offset, rnameOffset:flatbuffers.Offset, serial:number, refresh:number, retry:number, expire:number, minimum:number):flatbuffers.Offset {
-  DnsSoa.startDnsSoa(builder);
-  DnsSoa.addMname(builder, mnameOffset);
-  DnsSoa.addRname(builder, rnameOffset);
-  DnsSoa.addSerial(builder, serial);
-  DnsSoa.addRefresh(builder, refresh);
-  DnsSoa.addRetry(builder, retry);
-  DnsSoa.addExpire(builder, expire);
-  DnsSoa.addMinimum(builder, minimum);
-  return DnsSoa.endDnsSoa(builder);
-}
 }
 /**
  * @constructor
@@ -1065,14 +1038,6 @@ static endDnsSrv(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDnsSrv(builder:flatbuffers.Builder, priority:number, weight:number, port:number, targetOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DnsSrv.startDnsSrv(builder);
-  DnsSrv.addPriority(builder, priority);
-  DnsSrv.addWeight(builder, weight);
-  DnsSrv.addPort(builder, port);
-  DnsSrv.addTarget(builder, targetOffset);
-  return DnsSrv.endDnsSrv(builder);
-}
 }
 /**
  * @constructor
@@ -1171,11 +1136,6 @@ static endDnsTxtData(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDnsTxtData(builder:flatbuffers.Builder, dataOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DnsTxtData.startDnsTxtData(builder);
-  DnsTxtData.addData(builder, dataOffset);
-  return DnsTxtData.endDnsTxtData(builder);
-}
 }
 /**
  * @constructor
@@ -1267,11 +1227,6 @@ static endDnsTxt(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDnsTxt(builder:flatbuffers.Builder, dataOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DnsTxt.startDnsTxt(builder);
-  DnsTxt.addData(builder, dataOffset);
-  return DnsTxt.endDnsTxt(builder);
-}
 }
 /**
  * @constructor
@@ -1425,13 +1380,6 @@ static endDnsRequest(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDnsRequest(builder:flatbuffers.Builder, id:number, messageType:DnsMessageType, queriesOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DnsRequest.startDnsRequest(builder);
-  DnsRequest.addId(builder, id);
-  DnsRequest.addMessageType(builder, messageType);
-  DnsRequest.addQueries(builder, queriesOffset);
-  return DnsRequest.endDnsRequest(builder);
-}
 }
 /**
  * @constructor
@@ -1606,14 +1554,6 @@ static endDnsQuery(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDnsQuery(builder:flatbuffers.Builder, nameOffset:flatbuffers.Offset, rrType:DnsRecordType, dnsClass:DnsClass, nameServersOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DnsQuery.startDnsQuery(builder);
-  DnsQuery.addName(builder, nameOffset);
-  DnsQuery.addRrType(builder, rrType);
-  DnsQuery.addDnsClass(builder, dnsClass);
-  DnsQuery.addNameServers(builder, nameServersOffset);
-  return DnsQuery.endDnsQuery(builder);
-}
 }
 /**
  * @constructor
@@ -1818,16 +1758,6 @@ static endDnsRecord(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDnsRecord(builder:flatbuffers.Builder, nameOffset:flatbuffers.Offset, rrType:DnsRecordType, rdataType:DnsRecordData, rdataOffset:flatbuffers.Offset, dnsClass:DnsClass, ttl:number):flatbuffers.Offset {
-  DnsRecord.startDnsRecord(builder);
-  DnsRecord.addName(builder, nameOffset);
-  DnsRecord.addRrType(builder, rrType);
-  DnsRecord.addRdataType(builder, rdataType);
-  DnsRecord.addRdata(builder, rdataOffset);
-  DnsRecord.addDnsClass(builder, dnsClass);
-  DnsRecord.addTtl(builder, ttl);
-  return DnsRecord.endDnsRecord(builder);
-}
 }
 /**
  * @constructor
@@ -2152,18 +2082,6 @@ static endDnsResponse(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDnsResponse(builder:flatbuffers.Builder, id:number, opCode:DnsOpCode, messageType:DnsMessageType, authoritative:boolean, truncated:boolean, responseCode:DnsResponseCode, answersOffset:flatbuffers.Offset, queriesOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DnsResponse.startDnsResponse(builder);
-  DnsResponse.addId(builder, id);
-  DnsResponse.addOpCode(builder, opCode);
-  DnsResponse.addMessageType(builder, messageType);
-  DnsResponse.addAuthoritative(builder, authoritative);
-  DnsResponse.addTruncated(builder, truncated);
-  DnsResponse.addResponseCode(builder, responseCode);
-  DnsResponse.addAnswers(builder, answersOffset);
-  DnsResponse.addQueries(builder, queriesOffset);
-  return DnsResponse.endDnsResponse(builder);
-}
 }
 /**
  * @constructor
@@ -2227,11 +2145,6 @@ static endCacheGet(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createCacheGet(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset):flatbuffers.Offset {
-  CacheGet.startCacheGet(builder);
-  CacheGet.addKey(builder, keyOffset);
-  return CacheGet.endCacheGet(builder);
-}
 }
 /**
  * @constructor
@@ -2314,12 +2227,6 @@ static endCacheMeta(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createCacheMeta(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset, valueOffset:flatbuffers.Offset):flatbuffers.Offset {
-  CacheMeta.startCacheMeta(builder);
-  CacheMeta.addKey(builder, keyOffset);
-  CacheMeta.addValue(builder, valueOffset);
-  return CacheMeta.endCacheMeta(builder);
-}
 }
 /**
  * @constructor
@@ -2445,13 +2352,6 @@ static endCacheGetReady(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createCacheGetReady(builder:flatbuffers.Builder, id:number, stream:boolean, metaOffset:flatbuffers.Offset):flatbuffers.Offset {
-  CacheGetReady.startCacheGetReady(builder);
-  CacheGetReady.addId(builder, id);
-  CacheGetReady.addStream(builder, stream);
-  CacheGetReady.addMeta(builder, metaOffset);
-  return CacheGetReady.endCacheGetReady(builder);
-}
 }
 /**
  * @constructor
@@ -2614,14 +2514,6 @@ static endCacheSet(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createCacheSet(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset, ttl:number, tagsOffset:flatbuffers.Offset, metaOffset:flatbuffers.Offset):flatbuffers.Offset {
-  CacheSet.startCacheSet(builder);
-  CacheSet.addKey(builder, keyOffset);
-  CacheSet.addTtl(builder, ttl);
-  CacheSet.addTags(builder, tagsOffset);
-  CacheSet.addMeta(builder, metaOffset);
-  return CacheSet.endCacheSet(builder);
-}
 }
 /**
  * @constructor
@@ -2697,11 +2589,6 @@ static endCacheSetReady(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createCacheSetReady(builder:flatbuffers.Builder, id:number):flatbuffers.Offset {
-  CacheSetReady.startCacheSetReady(builder);
-  CacheSetReady.addId(builder, id);
-  return CacheSetReady.endCacheSetReady(builder);
-}
 }
 /**
  * @constructor
@@ -2765,11 +2652,6 @@ static endCacheDel(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createCacheDel(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset):flatbuffers.Offset {
-  CacheDel.startCacheDel(builder);
-  CacheDel.addKey(builder, keyOffset);
-  return CacheDel.endCacheDel(builder);
-}
 }
 /**
  * @constructor
@@ -2864,12 +2746,6 @@ static endCacheExpire(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createCacheExpire(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset, ttl:number):flatbuffers.Offset {
-  CacheExpire.startCacheExpire(builder);
-  CacheExpire.addKey(builder, keyOffset);
-  CacheExpire.addTtl(builder, ttl);
-  return CacheExpire.endCacheExpire(builder);
-}
 }
 /**
  * @constructor
@@ -2933,11 +2809,6 @@ static endCacheNotifyDel(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createCacheNotifyDel(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset):flatbuffers.Offset {
-  CacheNotifyDel.startCacheNotifyDel(builder);
-  CacheNotifyDel.addKey(builder, keyOffset);
-  return CacheNotifyDel.endCacheNotifyDel(builder);
-}
 }
 /**
  * @constructor
@@ -3001,11 +2872,6 @@ static endCacheNotifyPurgeTag(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createCacheNotifyPurgeTag(builder:flatbuffers.Builder, tagOffset:flatbuffers.Offset):flatbuffers.Offset {
-  CacheNotifyPurgeTag.startCacheNotifyPurgeTag(builder);
-  CacheNotifyPurgeTag.addTag(builder, tagOffset);
-  return CacheNotifyPurgeTag.endCacheNotifyPurgeTag(builder);
-}
 }
 /**
  * @constructor
@@ -3088,12 +2954,6 @@ static endCacheSetMeta(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createCacheSetMeta(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset, metaOffset:flatbuffers.Offset):flatbuffers.Offset {
-  CacheSetMeta.startCacheSetMeta(builder);
-  CacheSetMeta.addKey(builder, keyOffset);
-  CacheSetMeta.addMeta(builder, metaOffset);
-  return CacheSetMeta.endCacheSetMeta(builder);
-}
 }
 /**
  * @constructor
@@ -3206,12 +3066,6 @@ static endCacheSetTags(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createCacheSetTags(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset, tagsOffset:flatbuffers.Offset):flatbuffers.Offset {
-  CacheSetTags.startCacheSetTags(builder);
-  CacheSetTags.addKey(builder, keyOffset);
-  CacheSetTags.addTags(builder, tagsOffset);
-  return CacheSetTags.endCacheSetTags(builder);
-}
 }
 /**
  * @constructor
@@ -3275,11 +3129,529 @@ static endCachePurgeTag(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createCachePurgeTag(builder:flatbuffers.Builder, tagOffset:flatbuffers.Offset):flatbuffers.Offset {
-  CachePurgeTag.startCachePurgeTag(builder);
-  CachePurgeTag.addTag(builder, tagOffset);
-  return CachePurgeTag.endCachePurgeTag(builder);
 }
+/**
+ * @constructor
+ */
+export class DataPut {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns DataPut
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):DataPut {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param DataPut= obj
+ * @returns DataPut
+ */
+static getRootAsDataPut(bb:flatbuffers.ByteBuffer, obj?:DataPut):DataPut {
+  return (obj || new DataPut).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+collection():string|null
+collection(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+collection(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+key():string|null
+key(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+key(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+json():string|null
+json(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+json(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 8);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startDataPut(builder:flatbuffers.Builder) {
+  builder.startObject(3);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset collectionOffset
+ */
+static addCollection(builder:flatbuffers.Builder, collectionOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, collectionOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset keyOffset
+ */
+static addKey(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(1, keyOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset jsonOffset
+ */
+static addJson(builder:flatbuffers.Builder, jsonOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(2, jsonOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endDataPut(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
+}
+/**
+ * @constructor
+ */
+export class DataGet {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns DataGet
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):DataGet {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param DataGet= obj
+ * @returns DataGet
+ */
+static getRootAsDataGet(bb:flatbuffers.ByteBuffer, obj?:DataGet):DataGet {
+  return (obj || new DataGet).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+collection():string|null
+collection(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+collection(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+key():string|null
+key(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+key(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startDataGet(builder:flatbuffers.Builder) {
+  builder.startObject(2);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset collectionOffset
+ */
+static addCollection(builder:flatbuffers.Builder, collectionOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, collectionOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset keyOffset
+ */
+static addKey(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(1, keyOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endDataGet(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
+}
+/**
+ * @constructor
+ */
+export class DataGetReady {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns DataGetReady
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):DataGetReady {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param DataGetReady= obj
+ * @returns DataGetReady
+ */
+static getRootAsDataGetReady(bb:flatbuffers.ByteBuffer, obj?:DataGetReady):DataGetReady {
+  return (obj || new DataGetReady).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+json():string|null
+json(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+json(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startDataGetReady(builder:flatbuffers.Builder) {
+  builder.startObject(1);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset jsonOffset
+ */
+static addJson(builder:flatbuffers.Builder, jsonOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, jsonOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endDataGetReady(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
+}
+/**
+ * @constructor
+ */
+export class DataDel {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns DataDel
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):DataDel {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param DataDel= obj
+ * @returns DataDel
+ */
+static getRootAsDataDel(bb:flatbuffers.ByteBuffer, obj?:DataDel):DataDel {
+  return (obj || new DataDel).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+collection():string|null
+collection(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+collection(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+key():string|null
+key(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+key(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startDataDel(builder:flatbuffers.Builder) {
+  builder.startObject(2);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset collectionOffset
+ */
+static addCollection(builder:flatbuffers.Builder, collectionOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, collectionOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset keyOffset
+ */
+static addKey(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(1, keyOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endDataDel(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
+}
+/**
+ * @constructor
+ */
+export class DataDropCollection {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns DataDropCollection
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):DataDropCollection {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param DataDropCollection= obj
+ * @returns DataDropCollection
+ */
+static getRootAsDataDropCollection(bb:flatbuffers.ByteBuffer, obj?:DataDropCollection):DataDropCollection {
+  return (obj || new DataDropCollection).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+collection():string|null
+collection(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+collection(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startDataDropCollection(builder:flatbuffers.Builder) {
+  builder.startObject(1);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset collectionOffset
+ */
+static addCollection(builder:flatbuffers.Builder, collectionOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, collectionOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endDataDropCollection(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
+}
+/**
+ * @constructor
+ */
+export class DataIncr {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns DataIncr
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):DataIncr {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param DataIncr= obj
+ * @returns DataIncr
+ */
+static getRootAsDataIncr(bb:flatbuffers.ByteBuffer, obj?:DataIncr):DataIncr {
+  return (obj || new DataIncr).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+collection():string|null
+collection(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+collection(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+key():string|null
+key(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+key(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+field():string|null
+field(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+field(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 8);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @returns number
+ */
+amount():number {
+  var offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.readInt32(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param number value
+ * @returns boolean
+ */
+mutate_amount(value:number):boolean {
+  var offset = this.bb!.__offset(this.bb_pos, 10);
+
+  if (offset === 0) {
+    return false;
+  }
+
+  this.bb!.writeInt32(this.bb_pos + offset, value);
+  return true;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startDataIncr(builder:flatbuffers.Builder) {
+  builder.startObject(4);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset collectionOffset
+ */
+static addCollection(builder:flatbuffers.Builder, collectionOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, collectionOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset keyOffset
+ */
+static addKey(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(1, keyOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset fieldOffset
+ */
+static addField(builder:flatbuffers.Builder, fieldOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(2, fieldOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number amount
+ */
+static addAmount(builder:flatbuffers.Builder, amount:number) {
+  builder.addFieldInt32(3, amount, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endDataIncr(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
 }
 /**
  * @constructor
@@ -3448,14 +3820,143 @@ static endImageWebPEncode(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createImageWebPEncode(builder:flatbuffers.Builder, quality:number, alphaQuality:number, lossless:boolean, nearLossless:boolean):flatbuffers.Offset {
-  ImageWebPEncode.startImageWebPEncode(builder);
-  ImageWebPEncode.addQuality(builder, quality);
-  ImageWebPEncode.addAlphaQuality(builder, alphaQuality);
-  ImageWebPEncode.addLossless(builder, lossless);
-  ImageWebPEncode.addNearLossless(builder, nearLossless);
-  return ImageWebPEncode.endImageWebPEncode(builder);
 }
+/**
+ * @constructor
+ */
+export class ImageResize {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns ImageResize
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):ImageResize {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param ImageResize= obj
+ * @returns ImageResize
+ */
+static getRootAsImageResize(bb:flatbuffers.ByteBuffer, obj?:ImageResize):ImageResize {
+  return (obj || new ImageResize).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @returns number
+ */
+width():number {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param number value
+ * @returns boolean
+ */
+mutate_width(value:number):boolean {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+
+  if (offset === 0) {
+    return false;
+  }
+
+  this.bb!.writeUint32(this.bb_pos + offset, value);
+  return true;
+};
+
+/**
+ * @returns number
+ */
+height():number {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param number value
+ * @returns boolean
+ */
+mutate_height(value:number):boolean {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+
+  if (offset === 0) {
+    return false;
+  }
+
+  this.bb!.writeUint32(this.bb_pos + offset, value);
+  return true;
+};
+
+/**
+ * @returns ImageSamplingFilter
+ */
+filter():ImageSamplingFilter {
+  var offset = this.bb!.__offset(this.bb_pos, 8);
+  return offset ? /**  */ (this.bb!.readInt8(this.bb_pos + offset)) : ImageSamplingFilter.Nearest;
+};
+
+/**
+ * @param ImageSamplingFilter value
+ * @returns boolean
+ */
+mutate_filter(value:ImageSamplingFilter):boolean {
+  var offset = this.bb!.__offset(this.bb_pos, 8);
+
+  if (offset === 0) {
+    return false;
+  }
+
+  this.bb!.writeInt8(this.bb_pos + offset, value);
+  return true;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startImageResize(builder:flatbuffers.Builder) {
+  builder.startObject(3);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number width
+ */
+static addWidth(builder:flatbuffers.Builder, width:number) {
+  builder.addFieldInt32(0, width, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number height
+ */
+static addHeight(builder:flatbuffers.Builder, height:number) {
+  builder.addFieldInt32(1, height, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param ImageSamplingFilter filter
+ */
+static addFilter(builder:flatbuffers.Builder, filter:ImageSamplingFilter) {
+  builder.addFieldInt8(2, filter, ImageSamplingFilter.Nearest);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endImageResize(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
 }
 /**
  * @constructor
@@ -3489,7 +3990,7 @@ static getRootAsImageTransform(bb:flatbuffers.ByteBuffer, obj?:ImageTransform):I
  */
 transform():ImageTransformType {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? /**  */ (this.bb!.readInt8(this.bb_pos + offset)) : ImageTransformType.ImageWebPEncode;
+  return offset ? /**  */ (this.bb!.readInt8(this.bb_pos + offset)) : ImageTransformType.WebPEncode;
 };
 
 /**
@@ -3551,7 +4052,7 @@ static startImageTransform(builder:flatbuffers.Builder) {
  * @param ImageTransformType transform
  */
 static addTransform(builder:flatbuffers.Builder, transform:ImageTransformType) {
-  builder.addFieldInt8(0, transform, ImageTransformType.ImageWebPEncode);
+  builder.addFieldInt8(0, transform, ImageTransformType.WebPEncode);
 };
 
 /**
@@ -3579,13 +4080,6 @@ static endImageTransform(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createImageTransform(builder:flatbuffers.Builder, transform:ImageTransformType, optionsType:ImageTransformOptions, optionsOffset:flatbuffers.Offset):flatbuffers.Offset {
-  ImageTransform.startImageTransform(builder);
-  ImageTransform.addTransform(builder, transform);
-  ImageTransform.addOptionsType(builder, optionsType);
-  ImageTransform.addOptions(builder, optionsOffset);
-  return ImageTransform.endImageTransform(builder);
-}
 }
 /**
  * @constructor
@@ -3677,11 +4171,6 @@ static endImageApplyTransforms(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createImageApplyTransforms(builder:flatbuffers.Builder, transformsOffset:flatbuffers.Offset):flatbuffers.Offset {
-  ImageApplyTransforms.startImageApplyTransforms(builder);
-  ImageApplyTransforms.addTransforms(builder, transformsOffset);
-  return ImageApplyTransforms.endImageApplyTransforms(builder);
-}
 }
 /**
  * @constructor
@@ -3788,12 +4277,6 @@ static endImageReady(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createImageReady(builder:flatbuffers.Builder, inId:number, outId:number):flatbuffers.Offset {
-  ImageReady.startImageReady(builder);
-  ImageReady.addInId(builder, inId);
-  ImageReady.addOutId(builder, outId);
-  return ImageReady.endImageReady(builder);
-}
 }
 /**
  * @constructor
@@ -3876,12 +4359,6 @@ static endAcmeGetChallenge(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createAcmeGetChallenge(builder:flatbuffers.Builder, hostnameOffset:flatbuffers.Offset, tokenOffset:flatbuffers.Offset):flatbuffers.Offset {
-  AcmeGetChallenge.startAcmeGetChallenge(builder);
-  AcmeGetChallenge.addHostname(builder, hostnameOffset);
-  AcmeGetChallenge.addToken(builder, tokenOffset);
-  return AcmeGetChallenge.endAcmeGetChallenge(builder);
-}
 }
 /**
  * @constructor
@@ -3976,12 +4453,81 @@ static endAcmeGetChallengeReady(builder:flatbuffers.Builder):flatbuffers.Offset 
   return offset;
 };
 
-static createAcmeGetChallengeReady(builder:flatbuffers.Builder, id:number, contentsOffset:flatbuffers.Offset):flatbuffers.Offset {
-  AcmeGetChallengeReady.startAcmeGetChallengeReady(builder);
-  AcmeGetChallengeReady.addId(builder, id);
-  AcmeGetChallengeReady.addContents(builder, contentsOffset);
-  return AcmeGetChallengeReady.endAcmeGetChallengeReady(builder);
 }
+/**
+ * @constructor
+ */
+export class OsExit {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns OsExit
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):OsExit {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param OsExit= obj
+ * @returns OsExit
+ */
+static getRootAsOsExit(bb:flatbuffers.ByteBuffer, obj?:OsExit):OsExit {
+  return (obj || new OsExit).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @returns number
+ */
+code():number {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.readInt32(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param number value
+ * @returns boolean
+ */
+mutate_code(value:number):boolean {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+
+  if (offset === 0) {
+    return false;
+  }
+
+  this.bb!.writeInt32(this.bb_pos + offset, value);
+  return true;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startOsExit(builder:flatbuffers.Builder) {
+  builder.startObject(1);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number code
+ */
+static addCode(builder:flatbuffers.Builder, code:number) {
+  builder.addFieldInt32(0, code, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endOsExit(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
 }
 /**
  * @constructor
@@ -4194,16 +4740,6 @@ static finishBaseBuffer(builder:flatbuffers.Builder, offset:flatbuffers.Offset) 
   builder.finish(offset);
 };
 
-static createBase(builder:flatbuffers.Builder, cmdId:number, sync:boolean, errorKind:ErrorKind, errorOffset:flatbuffers.Offset, msgType:Any, msgOffset:flatbuffers.Offset):flatbuffers.Offset {
-  Base.startBase(builder);
-  Base.addCmdId(builder, cmdId);
-  Base.addSync(builder, sync);
-  Base.addErrorKind(builder, errorKind);
-  Base.addError(builder, errorOffset);
-  Base.addMsgType(builder, msgType);
-  Base.addMsg(builder, msgOffset);
-  return Base.endBase(builder);
-}
 }
 /**
  * @constructor
@@ -4310,12 +4846,6 @@ static endTimerStart(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createTimerStart(builder:flatbuffers.Builder, id:number, delay:number):flatbuffers.Offset {
-  TimerStart.startTimerStart(builder);
-  TimerStart.addId(builder, id);
-  TimerStart.addDelay(builder, delay);
-  return TimerStart.endTimerStart(builder);
-}
 }
 /**
  * @constructor
@@ -4422,12 +4952,6 @@ static endTimerReady(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createTimerReady(builder:flatbuffers.Builder, id:number, canceled:boolean):flatbuffers.Offset {
-  TimerReady.startTimerReady(builder);
-  TimerReady.addId(builder, id);
-  TimerReady.addCanceled(builder, canceled);
-  return TimerReady.endTimerReady(builder);
-}
 }
 /**
  * @constructor
@@ -4503,11 +5027,6 @@ static endTimerClear(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createTimerClear(builder:flatbuffers.Builder, id:number):flatbuffers.Offset {
-  TimerClear.startTimerClear(builder);
-  TimerClear.addId(builder, id);
-  return TimerClear.endTimerClear(builder);
-}
 }
 /**
  * @constructor
@@ -4590,12 +5109,6 @@ static endHttpHeader(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createHttpHeader(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset, valueOffset:flatbuffers.Offset):flatbuffers.Offset {
-  HttpHeader.startHttpHeader(builder);
-  HttpHeader.addKey(builder, keyOffset);
-  HttpHeader.addValue(builder, valueOffset);
-  return HttpHeader.endHttpHeader(builder);
-}
 }
 /**
  * @constructor
@@ -4702,12 +5215,6 @@ static endStreamChunk(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createStreamChunk(builder:flatbuffers.Builder, id:number, done:boolean):flatbuffers.Offset {
-  StreamChunk.startStreamChunk(builder);
-  StreamChunk.addId(builder, id);
-  StreamChunk.addDone(builder, done);
-  return StreamChunk.endStreamChunk(builder);
-}
 }
 /**
  * @constructor
@@ -4812,10 +5319,21 @@ headersLength():number {
 };
 
 /**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+remoteAddr():string|null
+remoteAddr(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+remoteAddr(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
  * @returns boolean
  */
 hasBody():boolean {
-  var offset = this.bb!.__offset(this.bb_pos, 12);
+  var offset = this.bb!.__offset(this.bb_pos, 14);
   return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
 };
 
@@ -4824,7 +5342,7 @@ hasBody():boolean {
  * @returns boolean
  */
 mutate_has_body(value:boolean):boolean {
-  var offset = this.bb!.__offset(this.bb_pos, 12);
+  var offset = this.bb!.__offset(this.bb_pos, 14);
 
   if (offset === 0) {
     return false;
@@ -4838,7 +5356,7 @@ mutate_has_body(value:boolean):boolean {
  * @param flatbuffers.Builder builder
  */
 static startHttpRequest(builder:flatbuffers.Builder) {
-  builder.startObject(5);
+  builder.startObject(6);
 };
 
 /**
@@ -4896,10 +5414,18 @@ static startHeadersVector(builder:flatbuffers.Builder, numElems:number) {
 
 /**
  * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset remoteAddrOffset
+ */
+static addRemoteAddr(builder:flatbuffers.Builder, remoteAddrOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(4, remoteAddrOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
  * @param boolean hasBody
  */
 static addHasBody(builder:flatbuffers.Builder, hasBody:boolean) {
-  builder.addFieldInt8(4, +hasBody, +false);
+  builder.addFieldInt8(5, +hasBody, +false);
 };
 
 /**
@@ -4911,15 +5437,6 @@ static endHttpRequest(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createHttpRequest(builder:flatbuffers.Builder, id:number, method:HttpMethod, urlOffset:flatbuffers.Offset, headersOffset:flatbuffers.Offset, hasBody:boolean):flatbuffers.Offset {
-  HttpRequest.startHttpRequest(builder);
-  HttpRequest.addId(builder, id);
-  HttpRequest.addMethod(builder, method);
-  HttpRequest.addUrl(builder, urlOffset);
-  HttpRequest.addHeaders(builder, headersOffset);
-  HttpRequest.addHasBody(builder, hasBody);
-  return HttpRequest.endHttpRequest(builder);
-}
 }
 /**
  * @constructor
@@ -5104,14 +5621,6 @@ static endHttpResponse(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createHttpResponse(builder:flatbuffers.Builder, id:number, headersOffset:flatbuffers.Offset, status:number, hasBody:boolean):flatbuffers.Offset {
-  HttpResponse.startHttpResponse(builder);
-  HttpResponse.addId(builder, id);
-  HttpResponse.addHeaders(builder, headersOffset);
-  HttpResponse.addStatus(builder, status);
-  HttpResponse.addHasBody(builder, hasBody);
-  return HttpResponse.endHttpResponse(builder);
-}
 }
 /**
  * @constructor
@@ -5187,11 +5696,6 @@ static endHttpRequestStart(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createHttpRequestStart(builder:flatbuffers.Builder, id:number):flatbuffers.Offset {
-  HttpRequestStart.startHttpRequestStart(builder);
-  HttpRequestStart.addId(builder, id);
-  return HttpRequestStart.endHttpRequestStart(builder);
-}
 }
 /**
  * @constructor
@@ -5376,14 +5880,6 @@ static endFetchHttpResponse(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createFetchHttpResponse(builder:flatbuffers.Builder, id:number, headersOffset:flatbuffers.Offset, status:number, hasBody:boolean):flatbuffers.Offset {
-  FetchHttpResponse.startFetchHttpResponse(builder);
-  FetchHttpResponse.addId(builder, id);
-  FetchHttpResponse.addHeaders(builder, headersOffset);
-  FetchHttpResponse.addStatus(builder, status);
-  FetchHttpResponse.addHasBody(builder, hasBody);
-  return FetchHttpResponse.endFetchHttpResponse(builder);
-}
 }
 /**
  * @constructor
@@ -5447,11 +5943,6 @@ static endCryptoDigest(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createCryptoDigest(builder:flatbuffers.Builder, algoOffset:flatbuffers.Offset):flatbuffers.Offset {
-  CryptoDigest.startCryptoDigest(builder);
-  CryptoDigest.addAlgo(builder, algoOffset);
-  return CryptoDigest.endCryptoDigest(builder);
-}
 }
 /**
  * @constructor
@@ -5550,11 +6041,6 @@ static endCryptoDigestReady(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createCryptoDigestReady(builder:flatbuffers.Builder, bufferOffset:flatbuffers.Offset):flatbuffers.Offset {
-  CryptoDigestReady.startCryptoDigestReady(builder);
-  CryptoDigestReady.addBuffer(builder, bufferOffset);
-  return CryptoDigestReady.endCryptoDigestReady(builder);
-}
 }
 /**
  * @constructor
@@ -5630,11 +6116,6 @@ static endCryptoRandomValues(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createCryptoRandomValues(builder:flatbuffers.Builder, len:number):flatbuffers.Offset {
-  CryptoRandomValues.startCryptoRandomValues(builder);
-  CryptoRandomValues.addLen(builder, len);
-  return CryptoRandomValues.endCryptoRandomValues(builder);
-}
 }
 /**
  * @constructor
@@ -5733,11 +6214,6 @@ static endCryptoRandomValuesReady(builder:flatbuffers.Builder):flatbuffers.Offse
   return offset;
 };
 
-static createCryptoRandomValuesReady(builder:flatbuffers.Builder, bufferOffset:flatbuffers.Offset):flatbuffers.Offset {
-  CryptoRandomValuesReady.startCryptoRandomValuesReady(builder);
-  CryptoRandomValuesReady.addBuffer(builder, bufferOffset);
-  return CryptoRandomValuesReady.endCryptoRandomValuesReady(builder);
-}
 }
 /**
  * @constructor
@@ -5882,14 +6358,6 @@ static endFrame(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createFrame(builder:flatbuffers.Builder, line:number, col:number, filenameOffset:flatbuffers.Offset, nameOffset:flatbuffers.Offset):flatbuffers.Offset {
-  Frame.startFrame(builder);
-  Frame.addLine(builder, line);
-  Frame.addCol(builder, col);
-  Frame.addFilename(builder, filenameOffset);
-  Frame.addName(builder, nameOffset);
-  return Frame.endFrame(builder);
-}
 }
 /**
  * @constructor
@@ -5981,11 +6449,6 @@ static endSourceMap(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createSourceMap(builder:flatbuffers.Builder, framesOffset:flatbuffers.Offset):flatbuffers.Offset {
-  SourceMap.startSourceMap(builder);
-  SourceMap.addFrames(builder, framesOffset);
-  return SourceMap.endSourceMap(builder);
-}
 }
 /**
  * @constructor
@@ -6077,431 +6540,6 @@ static endSourceMapReady(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createSourceMapReady(builder:flatbuffers.Builder, framesOffset:flatbuffers.Offset):flatbuffers.Offset {
-  SourceMapReady.startSourceMapReady(builder);
-  SourceMapReady.addFrames(builder, framesOffset);
-  return SourceMapReady.endSourceMapReady(builder);
-}
-}
-/**
- * @constructor
- */
-export class DataPut {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns DataPut
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):DataPut {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param DataPut= obj
- * @returns DataPut
- */
-static getRootAsDataPut(bb:flatbuffers.ByteBuffer, obj?:DataPut):DataPut {
-  return (obj || new DataPut).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.Encoding= optionalEncoding
- * @returns string|Uint8Array|null
- */
-collection():string|null
-collection(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-collection(optionalEncoding?:any):string|Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
-};
-
-/**
- * @param flatbuffers.Encoding= optionalEncoding
- * @returns string|Uint8Array|null
- */
-key():string|null
-key(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-key(optionalEncoding?:any):string|Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
-};
-
-/**
- * @param flatbuffers.Encoding= optionalEncoding
- * @returns string|Uint8Array|null
- */
-json():string|null
-json(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-json(optionalEncoding?:any):string|Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 8);
-  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
-};
-
-/**
- * @param flatbuffers.Builder builder
- */
-static startDataPut(builder:flatbuffers.Builder) {
-  builder.startObject(3);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset collectionOffset
- */
-static addCollection(builder:flatbuffers.Builder, collectionOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, collectionOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset keyOffset
- */
-static addKey(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, keyOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset jsonOffset
- */
-static addJson(builder:flatbuffers.Builder, jsonOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(2, jsonOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @returns flatbuffers.Offset
- */
-static endDataPut(builder:flatbuffers.Builder):flatbuffers.Offset {
-  var offset = builder.endObject();
-  return offset;
-};
-
-static createDataPut(builder:flatbuffers.Builder, collectionOffset:flatbuffers.Offset, keyOffset:flatbuffers.Offset, jsonOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DataPut.startDataPut(builder);
-  DataPut.addCollection(builder, collectionOffset);
-  DataPut.addKey(builder, keyOffset);
-  DataPut.addJson(builder, jsonOffset);
-  return DataPut.endDataPut(builder);
-}
-}
-/**
- * @constructor
- */
-export class DataGet {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns DataGet
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):DataGet {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param DataGet= obj
- * @returns DataGet
- */
-static getRootAsDataGet(bb:flatbuffers.ByteBuffer, obj?:DataGet):DataGet {
-  return (obj || new DataGet).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.Encoding= optionalEncoding
- * @returns string|Uint8Array|null
- */
-collection():string|null
-collection(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-collection(optionalEncoding?:any):string|Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
-};
-
-/**
- * @param flatbuffers.Encoding= optionalEncoding
- * @returns string|Uint8Array|null
- */
-key():string|null
-key(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-key(optionalEncoding?:any):string|Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
-};
-
-/**
- * @param flatbuffers.Builder builder
- */
-static startDataGet(builder:flatbuffers.Builder) {
-  builder.startObject(2);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset collectionOffset
- */
-static addCollection(builder:flatbuffers.Builder, collectionOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, collectionOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset keyOffset
- */
-static addKey(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, keyOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @returns flatbuffers.Offset
- */
-static endDataGet(builder:flatbuffers.Builder):flatbuffers.Offset {
-  var offset = builder.endObject();
-  return offset;
-};
-
-static createDataGet(builder:flatbuffers.Builder, collectionOffset:flatbuffers.Offset, keyOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DataGet.startDataGet(builder);
-  DataGet.addCollection(builder, collectionOffset);
-  DataGet.addKey(builder, keyOffset);
-  return DataGet.endDataGet(builder);
-}
-}
-/**
- * @constructor
- */
-export class DataGetReady {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns DataGetReady
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):DataGetReady {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param DataGetReady= obj
- * @returns DataGetReady
- */
-static getRootAsDataGetReady(bb:flatbuffers.ByteBuffer, obj?:DataGetReady):DataGetReady {
-  return (obj || new DataGetReady).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.Encoding= optionalEncoding
- * @returns string|Uint8Array|null
- */
-json():string|null
-json(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-json(optionalEncoding?:any):string|Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
-};
-
-/**
- * @param flatbuffers.Builder builder
- */
-static startDataGetReady(builder:flatbuffers.Builder) {
-  builder.startObject(1);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset jsonOffset
- */
-static addJson(builder:flatbuffers.Builder, jsonOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, jsonOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @returns flatbuffers.Offset
- */
-static endDataGetReady(builder:flatbuffers.Builder):flatbuffers.Offset {
-  var offset = builder.endObject();
-  return offset;
-};
-
-static createDataGetReady(builder:flatbuffers.Builder, jsonOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DataGetReady.startDataGetReady(builder);
-  DataGetReady.addJson(builder, jsonOffset);
-  return DataGetReady.endDataGetReady(builder);
-}
-}
-/**
- * @constructor
- */
-export class DataDel {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns DataDel
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):DataDel {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param DataDel= obj
- * @returns DataDel
- */
-static getRootAsDataDel(bb:flatbuffers.ByteBuffer, obj?:DataDel):DataDel {
-  return (obj || new DataDel).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.Encoding= optionalEncoding
- * @returns string|Uint8Array|null
- */
-collection():string|null
-collection(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-collection(optionalEncoding?:any):string|Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
-};
-
-/**
- * @param flatbuffers.Encoding= optionalEncoding
- * @returns string|Uint8Array|null
- */
-key():string|null
-key(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-key(optionalEncoding?:any):string|Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
-};
-
-/**
- * @param flatbuffers.Builder builder
- */
-static startDataDel(builder:flatbuffers.Builder) {
-  builder.startObject(2);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset collectionOffset
- */
-static addCollection(builder:flatbuffers.Builder, collectionOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, collectionOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset keyOffset
- */
-static addKey(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, keyOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @returns flatbuffers.Offset
- */
-static endDataDel(builder:flatbuffers.Builder):flatbuffers.Offset {
-  var offset = builder.endObject();
-  return offset;
-};
-
-static createDataDel(builder:flatbuffers.Builder, collectionOffset:flatbuffers.Offset, keyOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DataDel.startDataDel(builder);
-  DataDel.addCollection(builder, collectionOffset);
-  DataDel.addKey(builder, keyOffset);
-  return DataDel.endDataDel(builder);
-}
-}
-/**
- * @constructor
- */
-export class DataDropCollection {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns DataDropCollection
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):DataDropCollection {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param DataDropCollection= obj
- * @returns DataDropCollection
- */
-static getRootAsDataDropCollection(bb:flatbuffers.ByteBuffer, obj?:DataDropCollection):DataDropCollection {
-  return (obj || new DataDropCollection).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.Encoding= optionalEncoding
- * @returns string|Uint8Array|null
- */
-collection():string|null
-collection(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-collection(optionalEncoding?:any):string|Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
-};
-
-/**
- * @param flatbuffers.Builder builder
- */
-static startDataDropCollection(builder:flatbuffers.Builder) {
-  builder.startObject(1);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset collectionOffset
- */
-static addCollection(builder:flatbuffers.Builder, collectionOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, collectionOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @returns flatbuffers.Offset
- */
-static endDataDropCollection(builder:flatbuffers.Builder):flatbuffers.Offset {
-  var offset = builder.endObject();
-  return offset;
-};
-
-static createDataDropCollection(builder:flatbuffers.Builder, collectionOffset:flatbuffers.Offset):flatbuffers.Offset {
-  DataDropCollection.startDataDropCollection(builder);
-  DataDropCollection.addCollection(builder, collectionOffset);
-  return DataDropCollection.endDataDropCollection(builder);
-}
 }
 /**
  * @constructor
@@ -6577,11 +6615,6 @@ static endAddEventListener(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createAddEventListener(builder:flatbuffers.Builder, event:EventType):flatbuffers.Offset {
-  AddEventListener.startAddEventListener(builder);
-  AddEventListener.addEvent(builder, event);
-  return AddEventListener.endAddEventListener(builder);
-}
 }
 /**
  * @constructor
@@ -6664,12 +6697,6 @@ static endLoadModule(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createLoadModule(builder:flatbuffers.Builder, specifierUrlOffset:flatbuffers.Offset, refererOriginUrlOffset:flatbuffers.Offset):flatbuffers.Offset {
-  LoadModule.startLoadModule(builder);
-  LoadModule.addSpecifierUrl(builder, specifierUrlOffset);
-  LoadModule.addRefererOriginUrl(builder, refererOriginUrlOffset);
-  return LoadModule.endLoadModule(builder);
-}
 }
 /**
  * @constructor
@@ -6752,12 +6779,6 @@ static endLoadModuleResp(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createLoadModuleResp(builder:flatbuffers.Builder, originUrlOffset:flatbuffers.Offset, sourceCodeOffset:flatbuffers.Offset):flatbuffers.Offset {
-  LoadModuleResp.startLoadModuleResp(builder);
-  LoadModuleResp.addOriginUrl(builder, originUrlOffset);
-  LoadModuleResp.addSourceCode(builder, sourceCodeOffset);
-  return LoadModuleResp.endLoadModuleResp(builder);
-}
 }
 /**
  * @constructor
@@ -6871,13 +6892,6 @@ static endServiceRequest(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createServiceRequest(builder:flatbuffers.Builder, id:number, actionOffset:flatbuffers.Offset, dataOffset:flatbuffers.Offset):flatbuffers.Offset {
-  ServiceRequest.startServiceRequest(builder);
-  ServiceRequest.addId(builder, id);
-  ServiceRequest.addAction(builder, actionOffset);
-  ServiceRequest.addData(builder, dataOffset);
-  return ServiceRequest.endServiceRequest(builder);
-}
 }
 /**
  * @constructor
@@ -7003,11 +7017,4 @@ static endServiceResponse(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createServiceResponse(builder:flatbuffers.Builder, id:number, success:boolean, dataOffset:flatbuffers.Offset):flatbuffers.Offset {
-  ServiceResponse.startServiceResponse(builder);
-  ServiceResponse.addId(builder, id);
-  ServiceResponse.addSuccess(builder, success);
-  ServiceResponse.addData(builder, dataOffset);
-  return ServiceResponse.endServiceResponse(builder);
-}
 }

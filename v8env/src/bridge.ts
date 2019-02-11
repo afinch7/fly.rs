@@ -108,6 +108,8 @@ export function addEventListener(name: string, fn: Function) {
             }) : null
         })
 
+        req.remoteAddr = msg.remoteAddr();
+
         if (isAcmeChallengeRequest(req)) {
           handleAcmeChallenge(req)
             .then(res => handleRes(id, res))
@@ -404,21 +406,19 @@ function handleError(id: number, err: Error) {
 }
 
 export async function sendStreamChunks(id: number, stream: ReadableStream) {
-  console.debug("send stream chunk");
   let reader = stream.getReader();
   let cur = await reader.read()
   let done = false
   while (!done) {
-    console.debug("done?", cur.done, "typeof value:", typeof cur.value);
-    let value: ArrayBufferView;
+    let value: BufferSource;
     if (typeof cur.value === 'string')
       value = new TextEncoder().encode(cur.value)
-    else if (cur.value instanceof Uint8Array)
+    else if (cur.value instanceof Uint8Array || cur.value instanceof ArrayBuffer)
       value = cur.value
-    else if (typeof cur.value === 'undefined')
+    else if (typeof cur.value === 'undefined' || cur.value === null)
       value = undefined
     else
-      throw new TypeError("wrong body type")
+      throw new TypeError(`wrong body type: ${typeof cur.value} -> ${cur.value}`)
     sendStreamChunk(id, cur.done, value);
     if (cur.done)
       done = true
@@ -427,7 +427,7 @@ export async function sendStreamChunks(id: number, stream: ReadableStream) {
   }
 }
 
-export function sendStreamChunk(id: number, done: boolean, value?: ArrayBufferView) {
+export function sendStreamChunk(id: number, done: boolean, value?: BufferSource) {
   const fbb = flatbuffers.createBuilder()
   fbs.StreamChunk.startStreamChunk(fbb)
   fbs.StreamChunk.addId(fbb, id);
@@ -463,12 +463,12 @@ async function handleRes(id: number, res: FlyResponse) {
     fbs.HttpResponse.addHeaders(fbb, resHeaders);
     fbs.HttpResponse.addStatus(fbb, res.status);
     let resBody = res.body;
-    let hasBody = resBody != null && (!res.isStatic || res.isStatic && res.staticBody.length > 0)
+    let hasBody = resBody != null && (!res.isStatic || res.isStatic && res.staticBody.byteLength > 0)
     fbs.HttpResponse.addHasBody(fbb, hasBody)
 
     const resMsg = fbs.HttpResponse.endHttpResponse(fbb);
 
-    let staticBody: ArrayBufferView;
+    let staticBody: BufferSource;
     if (hasBody && res.isStatic)
       staticBody = res.staticBody
     sendSync(fbb, fbs.Any.HttpResponse, resMsg, staticBody); // sync so we can send body chunks when it's ready!
@@ -488,7 +488,7 @@ export function sendAsync(
   fbb: flatbuffers.Builder,
   msgType: fbs.Any,
   msg: flatbuffers.Offset,
-  raw?: ArrayBufferView
+  raw?: BufferSource
 ): Promise<fbs.Base> {
   const [cmdId, resBuf] = sendInternal(fbb, msgType, msg, false, raw);
   util.assert(resBuf == null);
@@ -502,7 +502,7 @@ export function sendSync(
   fbb: flatbuffers.Builder,
   msgType: fbs.Any,
   msg: flatbuffers.Offset,
-  raw?: ArrayBufferView
+  raw?: BufferSource
 ): null | fbs.Base {
   const [cmdId, resBuf] = sendInternal(fbb, msgType, msg, true, raw);
   util.assert(cmdId >= 0);
@@ -522,7 +522,7 @@ function sendInternal(
   msgType: fbs.Any,
   msg: flatbuffers.Offset,
   sync = true,
-  raw?: ArrayBufferView
+  raw?: BufferSource
 ): [number, null | Uint8Array] {
   const cmdId = nextCmdId++;
   fbs.Base.startBase(fbb);

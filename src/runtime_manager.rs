@@ -1,6 +1,6 @@
-use crate::runtime::Runtime;
+use crate::runtime::{ Runtime, RuntimeConfig };
 
-use crate::errors::{ FlyError, FlyResult };
+use crate::errors::{ FlyResult };
 
 use crate::module_resolver::{ ModuleResolver };
 
@@ -16,7 +16,7 @@ pub struct RuntimeManagerCallbacks {
 }
 
 pub trait RuntimeManager: Send + Sync {
-    fn new_runtime(&mut self, name: Option<String>, version: Option<String>, settings: &RwLock<Settings>, module_resolvers: Option<Vec<Box<ModuleResolver>>>,) -> Arc<Mutex<Box<Runtime>>>;
+    fn new_runtime(&mut self, config: RuntimeConfig) -> Arc<Mutex<Box<Runtime>>>;
     fn remove_runtime(&self, uuid: Uuid) -> Result<(), RuntimeManagerError>;
     fn bind_servicename_to(&mut self, uuid: Uuid, servicename: &str) -> Result<(), RuntimeManagerError>;
     fn bind_hostname_to(&mut self, uuid: Uuid, hostname: &str) -> Result<(), RuntimeManagerError>;

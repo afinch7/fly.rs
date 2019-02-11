@@ -1,6 +1,5 @@
+use crate::runtime::RuntimeConfig;
 use crate::runtime::Runtime;
-use crate::module_resolver::{ ModuleResolver };
-use crate::settings::{ Settings };
 use crate::runtime_manager::{ RuntimeManager, RuntimeManagerError, RuntimeManagerCallbacks };
 use crate::errors::{ FlyError, FlyResult };
 
@@ -34,12 +33,9 @@ impl StandardRuntimeManager {
 impl RuntimeManager for StandardRuntimeManager {
     fn new_runtime(
         &mut self,
-        name: Option<String>,
-        version: Option<String>,
-        settings: &RwLock<Settings>,
-        module_resolvers: Option<Vec<Box<ModuleResolver>>>,
+        config: RuntimeConfig,
     ) -> Arc<Mutex<Box<Runtime>>> {
-        let runtime = Runtime::new(name, version, &settings.read().unwrap(), module_resolvers);
+        let runtime = Runtime::new(config);
         let uuid_map_lock = self.uuid_to_runtime.get_mut().unwrap();
         let uuid = runtime.get_uuid();
         let rt_arc = Arc::new(Mutex::new(runtime));

@@ -1,5 +1,5 @@
-use hyper;
 pub use crate::msg::ErrorKind;
+use hyper;
 use std;
 use std::fmt;
 use std::io;
@@ -15,16 +15,22 @@ pub struct FlyError {
 
 #[derive(Debug)]
 enum Repr {
-  Simple(String),
+  Simple(ErrorKind, String),
   IoErr(io::Error),
   UrlErr(url::ParseError),
   HyperErr(hyper::Error),
 }
 
+pub fn new(kind: ErrorKind, msg: String) -> FlyError {
+  FlyError {
+    repr: Repr::Simple(kind, msg),
+  }
+}
+
 impl FlyError {
   pub fn kind(&self) -> ErrorKind {
     match self.repr {
-      Repr::Simple(_) => ErrorKind::String,
+      Repr::Simple(kind, ref _msg) => kind,
       Repr::IoErr(ref err) => {
         use std::io::ErrorKind::*;
         match err.kind() {
@@ -88,7 +94,7 @@ impl fmt::Display for FlyError {
       Repr::IoErr(ref err) => err.fmt(f),
       Repr::UrlErr(ref err) => err.fmt(f),
       Repr::HyperErr(ref err) => err.fmt(f),
-      Repr::Simple(ref s) => write!(f, "{}", s),
+      Repr::Simple(_kind, ref s) => write!(f, "{}", s),
     }
   }
 }
@@ -99,7 +105,7 @@ impl std::error::Error for FlyError {
       Repr::IoErr(ref err) => err.description(),
       Repr::UrlErr(ref err) => err.description(),
       Repr::HyperErr(ref err) => err.description(),
-      Repr::Simple(ref s) => s.as_str(),
+      Repr::Simple(_kind, ref s) => s.as_str(),
     }
   }
 
@@ -108,7 +114,7 @@ impl std::error::Error for FlyError {
       Repr::IoErr(ref err) => Some(err),
       Repr::UrlErr(ref err) => Some(err),
       Repr::HyperErr(ref err) => Some(err),
-      Repr::Simple(_) => None,
+      Repr::Simple(_, _) => None,
     }
   }
 }
@@ -144,7 +150,7 @@ impl From<String> for FlyError {
   #[inline]
   fn from(err: String) -> FlyError {
     FlyError {
-      repr: Repr::Simple(err),
+      repr: Repr::Simple(ErrorKind::String, err),
     }
   }
 }
@@ -153,7 +159,10 @@ impl From<RuntimeManagerError> for FlyError {
   #[inline]
   fn from(_: RuntimeManagerError) -> FlyError {
     FlyError {
-      repr: Repr::Simple("Errored with runtime manager error.".to_string()),
+      repr: Repr::Simple(
+        ErrorKind::String,
+        "Errored with runtime manager error.".to_string(),
+      ),
     }
   }
 }
@@ -162,7 +171,14 @@ impl From<()> for FlyError {
   #[inline]
   fn from(_: ()) -> FlyError {
     FlyError {
-      repr: Repr::Simple("Errored with non message error.".to_string()),
+      repr: Repr::Simple(
+        ErrorKind::String,
+        "Errored with non message error.".to_string(),
+      ),
     }
   }
+}
+
+pub fn permission_denied() -> FlyError {
+  new(ErrorKind::PermissionDenied, "permission denied".to_owned())
 }

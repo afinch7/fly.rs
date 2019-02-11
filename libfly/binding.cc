@@ -69,7 +69,6 @@ static inline v8::Local<v8::String> v8_str_from_fly_simple_buf(v8::Isolate *iso,
   return v8::String::NewFromUtf8(iso, buf.ptr, v8::NewStringType::kNormal, buf.len).ToLocalChecked();
 }
 
-
 // Extracts a C string from a v8::V8 Utf8Value.
 // const char *ToCString(const v8::String::Utf8Value &value)
 // {
@@ -83,6 +82,11 @@ char *str_to_char(const v8::String::Utf8Value &src)
 
 js_runtime *FromIsolate(v8::Isolate *isolate)
 {
+  if (!isolate)
+  {
+    printf("isolate has been disposed\n");
+    return nullptr;
+  }
   return static_cast<js_runtime *>(isolate->GetData(0));
 }
 
@@ -91,6 +95,11 @@ void HandleExceptionStr(v8::Local<v8::Context> context,
                         std::string *exception_str)
 {
   auto *isolate = context->GetIsolate();
+  if (!isolate)
+  {
+    printf("isolate has been disposed\n");
+    return;
+  }
   js_runtime *rt = FromIsolate(isolate);
 
   v8::HandleScope handle_scope(isolate);
@@ -182,6 +191,11 @@ void HandleException(v8::Local<v8::Context> context,
 void GetNextStreamId(const v8::FunctionCallbackInfo<v8::Value> &args)
 {
   v8::Isolate *isolate = args.GetIsolate();
+  if (!isolate)
+  {
+    printf("isolate has been disposed\n");
+    return;
+  }
   args.GetReturnValue().Set(v8::Number::New(isolate, c_get_next_stream_id()));
 }
 
@@ -189,6 +203,11 @@ void Print(const v8::FunctionCallbackInfo<v8::Value> &args)
 {
   // TODO: assert arguments (level:Number, msg:String)
   v8::Isolate *isolate = args.GetIsolate();
+  if (!isolate)
+  {
+    printf("isolate has been disposed\n");
+    return;
+  }
   js_runtime *rt = static_cast<js_runtime *>(isolate->GetData(0));
 
   auto lvl = v8::Int32::Cast(*args[0])->Value();
@@ -244,11 +263,33 @@ static fly_buf GetContents(const js_runtime *rt,
   return buf;
 }
 
+static fly_buf GetArrayBufferContents(const js_runtime *rt,
+                                      v8::Local<v8::ArrayBuffer> ab)
+{
+  auto contents = ab->GetContents();
+
+  auto length = ab->ByteLength();
+
+  fly_buf buf;
+  buf.alloc_ptr = reinterpret_cast<uint8_t *>(contents.Data());
+  buf.alloc_len = contents.ByteLength();
+  buf.data_ptr = buf.alloc_ptr;
+  buf.data_len = length;
+
+  return buf;
+}
+
 bool ExecuteV8StringSource(v8::Local<v8::Context> context,
                            const char *filename,
                            const char *code)
 {
   auto *isolate = context->GetIsolate();
+  if (!isolate)
+  {
+    printf("isolate has been disposed\n");
+    return false;
+  }
+
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
 
@@ -282,9 +323,9 @@ bool ExecuteV8StringSource(v8::Local<v8::Context> context,
 }
 
 v8::MaybeLocal<v8::Module> ModuleImportCallback(
-  v8::Local<v8::Context> context,
-  v8::Local<v8::String> specifier,
-  v8::Local<v8::Module> referrer) 
+    v8::Local<v8::Context> context,
+    v8::Local<v8::String> specifier,
+    v8::Local<v8::Module> referrer)
 {
   auto *isolate = context->GetIsolate();
 
@@ -317,7 +358,8 @@ bool ExecuteV8Module(v8::Local<v8::Context> context, js_compiled_module module_d
 
   auto module_instantiated = module_local->InstantiateModule(context, &ModuleImportCallback);
 
-  if (module_instantiated.FromMaybe(false)) {
+  if (module_instantiated.FromMaybe(false))
+  {
     // DCHECK(try_catch.HasCaught());
     HandleException(context, try_catch.Exception());
     return false;
@@ -325,7 +367,8 @@ bool ExecuteV8Module(v8::Local<v8::Context> context, js_compiled_module module_d
 
   auto result = module_local->Evaluate(context);
 
-  if (result.IsEmpty()) {
+  if (result.IsEmpty())
+  {
     // DCHECK(try_catch.HasCaught());
     HandleException(context, try_catch.Exception());
     return false;
@@ -334,7 +377,8 @@ bool ExecuteV8Module(v8::Local<v8::Context> context, js_compiled_module module_d
   return true;
 }
 
-js_compile_module_result CompileV8Module(v8::Local<v8::Context> context, js_module_data module_data) {
+js_compile_module_result CompileV8Module(v8::Local<v8::Context> context, js_module_data module_data)
+{
   auto *isolate = context->GetIsolate();
   v8::Isolate::Scope isolate_scope(isolate);
   v8::HandleScope handle_scope(isolate);
@@ -344,14 +388,14 @@ js_compile_module_result CompileV8Module(v8::Local<v8::Context> context, js_modu
   v8::TryCatch try_catch(isolate);
 
   v8::ScriptOrigin origin(v8_str(isolate, module_data.origin_url),
-                          Integer::New(isolate, 0),                        // line offset
-                          Integer::New(isolate, 0),                        // column offset
-                          False(isolate),                                  // is cross origin
-                          Local<Integer>(),                                // script id
-                          Local<Value>(),                                  // source map URL
-                          False(isolate),                                  // is opaque
-                          v8::Boolean::New(isolate, module_data.is_wasm),  // is WASM
-                          True(isolate));                                  // is ES6 module
+                          Integer::New(isolate, 0),                       // line offset
+                          Integer::New(isolate, 0),                       // column offset
+                          False(isolate),                                 // is cross origin
+                          Local<Integer>(),                               // script id
+                          Local<Value>(),                                 // source map URL
+                          False(isolate),                                 // is opaque
+                          v8::Boolean::New(isolate, module_data.is_wasm), // is WASM
+                          True(isolate));                                 // is ES6 module
 
   v8::ScriptCompiler::Source module_source(v8_str_from_fly_simple_buf(isolate, module_data.source_code), origin);
 
@@ -361,9 +405,9 @@ js_compile_module_result CompileV8Module(v8::Local<v8::Context> context, js_modu
   {
     // DCHECK(try_catch.HasCaught());
     HandleException(context, try_catch.Exception());
-    return js_compile_module_result {
-      NULL,
-      false,
+    return js_compile_module_result{
+        NULL,
+        false,
     };
   }
 
@@ -377,16 +421,20 @@ js_compile_module_result CompileV8Module(v8::Local<v8::Context> context, js_modu
     &module_persistent,
   };
 
-  return js_compile_module_result {
-    &compiled_module,
-    true,
+  return js_compile_module_result{
+      &compiled_module,
+      true,
   };
 }
 
 // Sets the recv callback.
-void Recv(const v8::FunctionCallbackInfo<v8::Value> &args)
+void Recv(const v8::FunctionCallbackInfo<v8::Value> &args) 
 {
   v8::Isolate *isolate = args.GetIsolate();
+  if (!isolate)
+  {
+    return;
+  }
   js_runtime *rt = reinterpret_cast<js_runtime *>(isolate->GetData(0));
   // DCHECK_EQ(d->isolate, isolate);
 
@@ -408,6 +456,10 @@ void Recv(const v8::FunctionCallbackInfo<v8::Value> &args)
 void Send(const v8::FunctionCallbackInfo<v8::Value> &args)
 {
   v8::Isolate *isolate = args.GetIsolate();
+  if (!isolate)
+  {
+    return;
+  }
   js_runtime *rt = static_cast<js_runtime *>(isolate->GetData(0));
   // DCHECK_EQ(d->isolate, isolate);
 
@@ -425,6 +477,10 @@ void Send(const v8::FunctionCallbackInfo<v8::Value> &args)
   if (args[1]->IsArrayBufferView())
   {
     raw = GetContents(rt, v8::Local<v8::ArrayBufferView>::Cast(args[1]));
+  }
+  else if (args[1]->IsArrayBuffer())
+  {
+    raw = GetArrayBufferContents(rt, v8::Local<v8::ArrayBuffer>::Cast(args[1]));
   }
 
   rt->current_args = &args;
@@ -523,8 +579,9 @@ extern "C"
 
   void promise_rejected_cb(v8::PromiseRejectMessage message)
   {
-    printf("Unhandled promise rejection:\n");
     auto iso = v8::Isolate::GetCurrent();
+    if (!iso)
+      return;
     auto rt = FromIsolate(iso);
     v8::HandleScope handle_scope(rt->isolate);
     auto error = message.GetValue();
@@ -535,18 +592,18 @@ extern "C"
     switch (message.GetEvent())
     {
     case v8::kPromiseRejectWithNoHandler:
-      printf("no handler!\n");
+      printf("Unhandled promise rejection:\n");
       printf("is native error? %s\n", error->IsNativeError() ? "true" : "false");
       printf("%s\n", *v8::String::Utf8Value(v8::Isolate::GetCurrent(), error));
-      break;
-    case v8::kPromiseRejectAfterResolved:
-      printf("promise reject after resolved\n");
       break;
     case v8::kPromiseHandlerAddedAfterReject:
       printf("promise handler added after reject\n");
       break;
+    case v8::kPromiseRejectAfterResolved:
+      // ignore
+      break;
     case v8::kPromiseResolveAfterResolved:
-      printf("promise resolved after resolved\n");
+      // ignore
       break;
     }
   }
@@ -610,6 +667,11 @@ extern "C"
 
   int js_send(const js_runtime *rt, fly_buf buf, fly_buf raw)
   {
+    if (!rt->isolate)
+    {
+      printf("isolate has been disposed\n");
+      return 0;
+    }
     v8::Locker locker(rt->isolate);
     v8::Isolate::Scope isolate_scope(rt->isolate);
     v8::HandleScope handle_scope(rt->isolate);
@@ -654,6 +716,11 @@ extern "C"
 
   void js_set_response(const js_runtime *rt, fly_buf buf)
   {
+    if (!rt->isolate)
+    {
+      printf("isolate has been disposed\n");
+      return;
+    }
     auto ab = ImportBuf(rt, buf);
     free_fly_buf(buf);
     rt->current_args->GetReturnValue().Set(ab);
@@ -661,6 +728,11 @@ extern "C"
 
   void js_runtime_terminate(js_runtime *rt)
   {
+    if (!rt->isolate)
+    {
+      printf("isolate has been disposed\n");
+      return;
+    }
     rt->context.Reset();
     rt->isolate->Dispose();
     free(rt);
@@ -668,11 +740,21 @@ extern "C"
 
   void js_runtime_run_micro_tasks(const js_runtime *rt)
   {
+    if (!rt->isolate)
+    {
+      printf("isolate has been disposed\n");
+      return;
+    }
     rt->isolate->RunMicrotasks();
   }
 
   bool js_eval(const js_runtime *rt, const char *filename, const char *code)
   {
+    if (!rt->isolate)
+    {
+      printf("isolate has been disposed\n");
+      return false;
+    }
     VALUE_SCOPE(rt->isolate, rt->context);
     return ExecuteV8StringSource(ctx, filename, code);
     // v8::TryCatch try_catch(rt->isolate);
@@ -698,7 +780,7 @@ extern "C"
     // }
   }
 
-  bool js_run_module(const js_runtime *rt, js_compiled_module module_data) 
+  bool js_run_module(const js_runtime *rt, js_compiled_module module_data)
   {
     VALUE_SCOPE(rt->isolate, rt->context);
     return ExecuteV8Module(ctx, module_data);
@@ -712,6 +794,11 @@ extern "C"
 
   js_heap_stats js_runtime_heap_statistics(const js_runtime *rt)
   {
+    if (!rt->isolate)
+    {
+      printf("isolate has been disposed\n");
+      return js_heap_stats{};
+    }
     v8::Isolate *isolate = rt->isolate;
     v8::HeapStatistics hs;
     {
@@ -754,6 +841,11 @@ extern "C"
 
   void js_runtime_dispose(const runtime *rt)
   {
+    if (!rt->isolate)
+    {
+      printf("isolate has been disposed\n");
+      return;
+    }
     rt->isolate->Dispose();
     delete rt;
   }
@@ -783,7 +875,8 @@ extern "C"
     return fly_simple_buf{blob.data, blob.raw_size};
   }
 
-  js_compile_module_result js_compile_module(const runtime *rt, js_module_data module_data) {
+  js_compile_module_result js_compile_module(const runtime *rt, js_module_data module_data)
+  {
     VALUE_SCOPE(rt->isolate, rt->context);
     return CompileV8Module(ctx, module_data);
   }

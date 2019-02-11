@@ -6,22 +6,30 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
 
 use std::io::BufRead;
+use std::time::Duration;
 
 #[derive(Debug)]
 pub struct ProxyTcpStream {
+    pub tls: bool,
     stream: TcpStream,
     remote_addr: SocketAddr,
 }
 
 impl ProxyTcpStream {
-    pub fn peek(stream: TcpStream) -> impl Future<Item = Self, Error = io::Error> {
+    pub fn from_tcp_stream(
+        stream: TcpStream,
+        tls: bool,
+    ) -> impl Future<Item = Self, Error = io::Error> {
         let mut bytes = [0; 107];
+        stream.set_nodelay(true).ok();
+        stream.set_keepalive(Some(Duration::from_secs(10))).ok();
         let mut stream = Some(stream);
         future::poll_fn(move || {
             let _n = try_ready!(stream.as_mut().unwrap().poll_peek(&mut bytes));
             // TODO: check bytes[..n] for PROXY line
             let mut stream = stream.take().unwrap();
-            let mut remote_addr: SocketAddr = stream.peer_addr().unwrap();
+            let mut remote_addr: SocketAddr =
+                stream.peer_addr().unwrap_or("0.0.0.0:0".parse().unwrap());
             let mut s = String::new();
             match bytes.as_ref().read_line(&mut s) {
                 Ok(ln) => {
@@ -30,15 +38,16 @@ impl ProxyTcpStream {
                         let mut v = vec![0; ln];
                         stream.read_exact(&mut v).unwrap();
                         let mut split = s.split(" ").skip(2);
-                        let ip = split.next().unwrap();
-                        let port = split.skip(1).next().unwrap();
+                        let ip = split.next().unwrap_or("0.0.0.0");
+                        let port = split.skip(1).next().unwrap_or("0");
                         remote_addr = format!("{}:{}", ip, port).parse().unwrap();
                         debug!("using proxy proto, remote addr: {}", remote_addr);
                     }
                 }
-                Err(e) => error!("error reading PROXY line: {}", e),
+                Err(e) => debug!("error reading PROXY protocol line: {}", e),
             };
             Ok(Async::Ready(ProxyTcpStream {
+                tls,
                 stream,
                 remote_addr,
             }))

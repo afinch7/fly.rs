@@ -36,7 +36,10 @@ export class FlyResponse extends FlyBody implements Response {
 		if (arguments.length < 1)
 			body = '';
 
-		super(body)
+		if (init instanceof FlyResponse)
+			super(body || init.body)
+		else
+			super(body)
 
 		init = Object(init) || {};
 
