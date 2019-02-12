@@ -11,8 +11,10 @@ use std::sync::{ RwLock, Arc, Mutex };
 
 use uuid::Uuid;
 
+use futures::sync::oneshot;
+
 pub struct RuntimeManagerCallbacks {
-    pub send_message: Box<(Fn(Uuid, String) -> FlyResult<JsServiceResponse>) + Send + Sync>,
+    pub send_message: Box<(Fn(Uuid, String) -> FlyResult<oneshot::Receiver<JsServiceResponse>>) + Send + Sync>,
     pub uuid_by_servicename: Box<(Fn(String) -> FlyResult<Option<Uuid>>) + Send + Sync>,
 }
 

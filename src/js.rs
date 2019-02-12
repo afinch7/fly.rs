@@ -75,5 +75,5 @@ pub struct JsServiceRequest {
 #[derive(Debug)]
 pub struct JsServiceResponse {
   pub success: bool,
-  pub data: String,
+  pub data: Option<String>,
 }

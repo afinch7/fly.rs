@@ -6,11 +6,6 @@ console.log("hello world")
 const helloWorldStr = "Hello World";
 const helloWorld = new TextEncoder().encode(helloWorldStr);
 
-addEventListener("serve", function (event) {
-  console.log("Recieved serve request");
-  event.respondWith(new ServiceResponse(true, { data: "test" }));
-});
-
 addEventListener("fetch", function (event) {
   const req = event.request;
   // console.log("req url:", event.request.url);
@@ -131,6 +126,6 @@ addEventListener("resolv", event => {
   })
 })
 
-setTimeout(() => {
-  console.log(serviceRequest("test", { data: "test" }));
+setTimeout(async () => {
+  console.log(await serviceRequest("test", { data: "test" }));
 }, 5000);

@@ -32,5 +32,4 @@ export function serviceRequest(destinationName: string, data: any): ServiceRespo
         success: msg.success(),
         data: JSON.parse(msg.data()),
     }
-
 }

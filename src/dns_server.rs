@@ -60,9 +60,9 @@ impl RequestHandler for DnsServer {
             .to_utf8();
         name.pop();
 
-        let rt_man_lock = self.selector.read().unwrap();
+        debug!("Dns request for hostname: {}", name);
 
-        let rt = match rt_man_lock.get_by_hostname(name.as_str()) {
+        let rt = match self.selector.read().unwrap().get_by_hostname(name.as_str()) {
             Ok(maybe_rt) => match maybe_rt {
                 Some(rt) => rt,
                 None => {

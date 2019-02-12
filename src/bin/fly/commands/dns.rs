@@ -45,6 +45,7 @@ pub fn exec(args: &ArgMatches<'_>) -> FlyCliResult<()> {
     debug!("V8 version: {}", libfly::version());
 
     let mut module_resolvers: Vec<Box<ModuleResolver>> = std::vec::Vec::new();
+    let mut test_service_module_resolvers: Vec<Box<ModuleResolver>> = std::vec::Vec::new();
 
     let secrets_file = match args.value_of("secrets-file") {
         Some(v) => v,
@@ -82,6 +83,7 @@ pub fn exec(args: &ArgMatches<'_>) -> FlyCliResult<()> {
     };
 
     module_resolvers.push(Box::new(LocalDiskModuleResolver::new(None)));
+    test_service_module_resolvers.push(Box::new(LocalDiskModuleResolver::new(None)));
 
     info!(
         "Module resolvers length {}",
@@ -103,18 +105,40 @@ pub fn exec(args: &ArgMatches<'_>) -> FlyCliResult<()> {
         dev_tools: true,
     });
 
+    let test_service_runtime = rt_manager.write().unwrap().new_runtime(RuntimeConfig {
+        name: None,
+        version: None,
+        settings: &SETTINGS.read().unwrap(),
+        module_resolvers: Some(test_service_module_resolvers),
+        app_logger: &slog_scope::logger(),
+        msg_handler: None,
+        permissions: None,
+        dev_tools: true,
+    });
+
     {
         let rt_arc_clone = runtime.clone();
         let rt_lock = rt_arc_clone.read().unwrap();
         rt_lock.eval_file_with_dev_tools(entry_file);
-        match rt_manager.write().unwrap().bind_servicename_to(uuid::Uuid::parse_str(rt_lock.get_uuid().as_str()).unwrap(), "test") {
+        let test_rt_arc_clone = test_service_runtime.clone();
+        let test_rt_lock = test_rt_arc_clone.read().unwrap();
+        test_rt_lock.eval_file_with_dev_tools("./test-service-runtime.js");
+        match rt_manager.write().unwrap().bind_servicename_to(uuid::Uuid::parse_str(test_rt_lock.get_uuid().as_str()).unwrap(), "test") {
             Ok(v) => {
-                debug!("Assigned name success!");
+                debug!("Assigned servicename success!");
             },
             Err(RuntimeManagerError::Failure(e)) => {
                 debug!("Failed to assign: {}", e);
             },
         };
+        match rt_manager.write().unwrap().bind_hostname_to(uuid::Uuid::parse_str(rt_lock.get_uuid().as_str()).unwrap(), "test.com") {
+            Ok(v) => {
+                debug!("Assigned hostname success!");
+            },
+            Err(RuntimeManagerError::Failure(e)) => {
+                debug!("Failed to assign: {}", e);
+            },
+        }
     }
     
 

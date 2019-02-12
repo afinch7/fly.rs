@@ -231,6 +231,7 @@ pub fn op_add_event_ln(rt: &mut Runtime, base: &msg::Base, _raw: fly_buf) -> Box
                     .and_then(|_| Ok(info!("done listening to service events."))),
             );
             rt.serve_events = Some(tx);
+            debug!("Finished registering service event listener.");
         },
     };
 

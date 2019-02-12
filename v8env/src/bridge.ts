@@ -370,11 +370,11 @@ function handleDNSRes(id: number, res: DNSResponse) {
 function handleServiceRes(id: number, res: ServiceResponse) {
   const fbb = flatbuffers.createBuilder();
 
+  const fbsData = fbb.createString(res.dataJson);
+
   fbs.ServiceResponse.startServiceResponse(fbb);
   fbs.ServiceResponse.addId(fbb, id);
   fbs.ServiceResponse.addSuccess(fbb, true);
-
-  const fbsData = fbb.createString(res.dataJson);
   
   fbs.ServiceResponse.addData(fbb, fbsData);
 

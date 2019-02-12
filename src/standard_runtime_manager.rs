@@ -16,6 +16,8 @@ use uuid::Uuid;
 
 use futures::future::Future;
 
+use futures::sync::oneshot;
+
 pub struct StandardRuntimeManager {
     uuid_to_runtime: RwLock<HashMap<String, Arc<RwLock<Box<Runtime>>>>>,
     hostname_to_uuid: RwLock<HashMap<String, String>>,
@@ -55,7 +57,7 @@ impl RuntimeManager for StandardRuntimeManager {
         };
         let man_send_msg_clone = man_arc.clone();
         let rt_send_msg_clone = rt_arc.clone();
-        let send_message = Box::new(move |recieiver: Uuid, message: String| -> FlyResult<JsServiceResponse> {
+        let send_message = Box::new(move |recieiver: Uuid, message: String| -> FlyResult<oneshot::Receiver<JsServiceResponse>> {
             let man_read_lock = man_send_msg_clone.read().unwrap();
             let recieiver_rt = man_read_lock.get_by_uuid(recieiver).unwrap();
             let rt_lock = rt_send_msg_clone.read().unwrap();
@@ -63,6 +65,9 @@ impl RuntimeManager for StandardRuntimeManager {
                 Some(v) => {
                     let recieiver_rt_lock = v.read().unwrap();
                     let eid = get_next_stream_id();
+                    if recieiver_rt_lock.get_uuid() == rt_lock.get_uuid() {
+                        return Err("Cannot send requests to the same runtime.(Creates race condition with blocking operations)".to_string().into());
+                    }
                     match recieiver_rt_lock.dispatch_event(
                         eid,
                         JsEvent::Serve(JsServiceRequest {
@@ -73,10 +78,7 @@ impl RuntimeManager for StandardRuntimeManager {
                     ) {
                         None => Err("Failed to dispatch service request".to_string().into()),
                         Some(Err(e)) => Err(format!("error sending js service request: {:?}", e).to_string().into()),
-                        Some(Ok(EventResponseChannel::Service(rx))) => {
-                            debug!("Recieved service event response channel.");
-                            Ok(rx.wait().unwrap())
-                        },
+                        Some(Ok(EventResponseChannel::Service(rx))) => Ok(rx),
                         _ => unimplemented!(),
                     }
                 },
