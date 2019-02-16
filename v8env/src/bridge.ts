@@ -84,14 +84,10 @@ export interface DnsRequestEvent extends RequestEvent<DNSResponse, DNSRequest> {
 export interface HttpRequestEvent extends RequestEvent<Response, FlyRequest> {
 }
 
-export interface ServiceRuntimeRequest extends RequestEvent<ServiceResponse, ServiceRequest> {
-}
-
 export type EventListenerFunction<ET> = (event: ET) => void;
 
 export function addEventListener(name: "fetch", fn: EventListenerFunction<HttpRequestEvent>);
 export function addEventListener(name: "resolve", fn: EventListenerFunction<DnsRequestEvent>);
-export function addEventListener(name: "serve", fn: EventListenerFunction<ServiceRuntimeRequest>);
 export function addEventListener(name: string, fn: EventListenerFunction<RequestEvent<any, any>>) {
   let event_type: fbs.EventType;
   switch (name) {
