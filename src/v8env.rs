@@ -3,7 +3,7 @@ use std::ffi::CString;
 use std::fs::File;
 use std::io::Read;
 use std::slice;
-use libc::c_char
+use libc::c_char;
 
 #[cfg(not(debug_assertions))]
 const V8ENV_SNAPSHOT: &'static [u8] = include_bytes!("../v8env.bin");
