@@ -1,0 +1,19 @@
+
+table GetRuntimeInfo {
+    runtime_uuid: string;
+}
+
+table GetRuntimeInfoResp {
+    name: string;
+    version: string;
+    default_module_url: string;
+}
+
+table ReadFileUrl {
+    url: string;
+}
+
+table ReadFileUrlResp {
+    exists: bool;
+    content: string;
+}
